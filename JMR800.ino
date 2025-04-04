@@ -3,7 +3,7 @@
 #include <Wire.h>
 #include <stdarg.h>
 #include <ADC.h>
-
+#include "JX8P.h"
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -55,7 +55,7 @@ bool stickyScrollEnabled = true;
 static unsigned long lastScreenUpdateTime = 0;
 static unsigned long lastPotScanTime = 0;
 static unsigned long lastButtonScan = 0;
-static uint paramCtr = 0x80;
+static uint paramCtr = 0x00;
 
 volatile uint16_t sendBuffer = 0;
 volatile int bitIndex = -1;
@@ -344,7 +344,7 @@ void setup() {
   pinMode(CLOCK_IN_PIN, INPUT_PULLUP);
 
   pinMode(DATA_OUT_PIN, OUTPUT);
-  digitalWrite(DATA_OUT_PIN, HIGH);
+  digitalWrite(READYOUT_PIN, LOW);
   
   display.begin(OLED_I2C_ADDRESS, false);
   display.clearDisplay();
@@ -375,7 +375,7 @@ void sendParameter(uint8_t paramID, uint8_t value) {
   bitIndex--;
   
   digitalWrite(READYOUT_PIN, HIGH);  // Begin transmission
-  //delayMicroseconds(1);
+  //delayMicroseconds(5);
   interrupts();
 }
 
@@ -391,9 +391,10 @@ void onClockFall() {
 
   bitIndex--;
   if (bitIndex < 0) {
-    delayMicroseconds(10);
+    delayMicroseconds(5);
     digitalWrite(READYOUT_PIN, LOW);           // End of transfer
-    digitalWrite(DATA_OUT_PIN, HIGH);           // Idle state
+    delayMicroseconds(10);
+    digitalWrite(DATA_OUT_PIN, LOW);           // Idle state
   }
 }
 
@@ -428,20 +429,22 @@ void sendByte(byte data) {
 
 
 void sendPG800Message() {
-    consolePrintf("Button pressed, %02X: %02X", (uint8_t) paramCtr, (uint8_t) (AnalogValues[0][0]));
-    sendParameter((uint8_t) (paramCtr << 1), (uint8_t) (AnalogValues[0][0]) << 1); // not sure why I'm having to shift these... something to do with the clock edges...
-    consolePrintf("Button pressed, done");
+    //consolePrint(jx8p_param_names[paramCtr + PARAM_START]);
+    consolePrintf("%02X: %02X", (uint8_t) paramCtr + PARAM_START, (uint8_t) (AnalogValues[0][0]));
+    sendParameter((uint8_t) (paramCtr + PARAM_START), (uint8_t) (AnalogValues[0][0]));
 }
 
 void handleButtons() {
   if(millis() - lastButtonScan > 200) { // only scan every quarter second
     lastButtonScan = millis();
     if(digitalRead(BUTTON_A) == LOW) {
+      consolePrint("Button A");
       sendPG800Message();
     }
     if(digitalRead(BUTTON_B) == LOW) {
+      consolePrint("Button B");
       paramCtr++;
-      if(paramCtr > 255)
+      if(paramCtr > NUM_PARAMS)
           paramCtr = 0;
     }
   }
