@@ -1,5 +1,6 @@
 # JMR-800
 
+![Picture of PG-800](PG-800.png)
 ![PCB View of JMR-800](3DView_PCB.png)
 
 **JMR-800** is a modern, open-source clone of the Roland PG-800 hardware programmer, built around the Teensy 4.1 microcontroller. It provides real-time 
