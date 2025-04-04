@@ -399,38 +399,8 @@ void onClockFall() {
 }
 
 
-
-/*
-void sendByte(byte data) {
-  
-  byte mask = B10000000;
-  
-  digitalWrite(READYOUT_PIN, HIGH);
-  
-  for (int i=0; i<8; i++) {
-    while (digitalRead(CLOCK_IN_PIN) == LOW) {   // need to add timeout code here...
-      delayMicroseconds(1);
-    }
-    if (data & mask) {
-      digitalWrite(DATA_OUT_PIN, LOW);
-    } else {
-      digitalWrite(DATA_OUT_PIN, HIGH);
-    }
-    while (digitalRead(CLOCK_IN_PIN) == HIGH) {
-      delayMicroseconds(1);
-    }
-    mask >>= 1;
-  }
-  
-  digitalWrite(READYOUT_PIN, LOW);
-  delayMicroseconds(3);
-}
-*/
-
-
 void sendPG800Message() {
-    //consolePrint(jx8p_param_names[paramCtr + PARAM_START]);
-    consolePrintf("%02X: %02X", (uint8_t) paramCtr + PARAM_START, (uint8_t) (AnalogValues[0][0]));
+    consolePrintf("%s %02X", jx8p_param_names[paramCtr], (uint8_t) (AnalogValues[0][0]));
     sendParameter((uint8_t) (paramCtr + PARAM_START), (uint8_t) (AnalogValues[0][0]));
 }
 
