@@ -49,16 +49,21 @@ uint enablePins[NUM_MUXES] = { U2_ENABLE_PIN, U3_ENABLE_PIN, U4_ENABLE_PIN };
 uint MuxAddressPins[4] = { S0_PIN, S1_PIN, S2_PIN, S3_PIN };
 uint analogInPins[NUM_MUXES] = { U2_ANALOG_IN_PIN, U3_ANALOG_IN_PIN, U4_ANALOG_IN_PIN };
 
-uint AnalogValues[16][3];
+uint16_t AnalogValues[16][3];
 
 bool stickyScrollEnabled = true;
 static unsigned long lastScreenUpdateTime = 0;
 static unsigned long lastPotScanTime = 0;
 static unsigned long lastButtonScan = 0;
-static uint paramCtr = 0x00;
+static uint16_t paramCtr = 0x00;
+static uint16_t oldParamCtr = 0xff;
+static uint16_t paramValue = 0xff;
+static uint16_t oldParamValue = 0xff;
 
 volatile uint16_t sendBuffer = 0;
 volatile int bitIndex = -1;
+
+bool bSending = false;
 
 /* --------------------------------------------------------------
    |                                                            |
@@ -147,13 +152,13 @@ void handleScrolling() {
    |                                                            |
    -------------------------------------------------------------- */
 void gatherPotentiometerValues() {
-  if(millis() - lastPotScanTime > 250) { // only scan every quarter second
+  if(millis() - lastPotScanTime > 99) {   // scan only periodically
     lastPotScanTime = millis();
     for(uint muxCtr = 0; muxCtr < NUM_MUXES; muxCtr++) {
         digitalWrite(enablePins[muxCtr], LOW);  // enable this mux
         for(uint addr = 0; addr < 16; addr++) {
           setAddressPins(addr);
-          AnalogValues[addr][muxCtr] = adc.adc0->analogRead(analogInPins[muxCtr]) >> 2;
+          AnalogValues[addr][muxCtr] = adc.adc0->analogRead(analogInPins[muxCtr]);
         }
         digitalWrite(enablePins[muxCtr], HIGH); // disable this mux
     }
@@ -400,23 +405,36 @@ void onClockFall() {
 
 
 void sendPG800Message() {
-    consolePrintf("%s %02X", jx8p_param_names[paramCtr], (uint8_t) (AnalogValues[0][0]));
-    sendParameter((uint8_t) (paramCtr + PARAM_START), (uint8_t) (AnalogValues[0][0]));
+    consolePrintf("%s %02X",  
+        jx8p_param_names[paramCtr], 
+        (uint8_t) (paramValue));
+
+    sendParameter((uint8_t) (paramCtr), (uint8_t) (paramValue));
 }
 
 void handleButtons() {
-  if(millis() - lastButtonScan > 200) { // only scan every quarter second
+  if(millis() - lastButtonScan > 100) { // only scan every 1/10 second
     lastButtonScan = millis();
+
     if(digitalRead(BUTTON_A) == LOW) {
-      consolePrint("Button A");
+      bSending = false;
+    }
+
+    paramCtr = (uint8_t)(((long)AnalogValues[0][0] * (long)127) / (long)1023 + (long)128);
+
+    if(paramCtr != oldParamCtr) {
+      oldParamCtr = paramCtr;
+      bSending = true;
+    }
+
+    paramValue = AnalogValues[1][0] >> 3;
+    if(oldParamValue != paramValue) {
+      oldParamValue = paramValue;
+      bSending = true;
+    }
+
+    if(bSending)
       sendPG800Message();
-    }
-    if(digitalRead(BUTTON_B) == LOW) {
-      consolePrint("Button B");
-      paramCtr++;
-      if(paramCtr > NUM_PARAMS)
-          paramCtr = 0;
-    }
   }
 }
 
