@@ -50,6 +50,7 @@ uint MuxAddressPins[4] = { S0_PIN, S1_PIN, S2_PIN, S3_PIN };
 uint analogInPins[NUM_MUXES] = { U2_ANALOG_IN_PIN, U3_ANALOG_IN_PIN, U4_ANALOG_IN_PIN };
 
 uint16_t AnalogValues[16][3];
+uint16_t oldAnalogValues[16][3];
 
 bool stickyScrollEnabled = true;
 static unsigned long lastScreenUpdateTime = 0;
@@ -151,16 +152,24 @@ void handleScrolling() {
    |  Invoked by: loop()                                        |
    |                                                            |
    -------------------------------------------------------------- */
+static int iGatherCtr = 0;
 void gatherPotentiometerValues() {
-  if(millis() - lastPotScanTime > 99) {   // scan only periodically
+  if(millis() - lastPotScanTime > 50) {   // scan only periodically
+    iGatherCtr++;
     lastPotScanTime = millis();
-    for(uint muxCtr = 0; muxCtr < NUM_MUXES; muxCtr++) {
+    for(uint8_t muxCtr = 0; muxCtr < NUM_MUXES; muxCtr++) {
         digitalWrite(enablePins[muxCtr], LOW);  // enable this mux
-        for(uint addr = 0; addr < 16; addr++) {
+        for(uint8_t addr = 0; addr < 16; addr++) {
           setAddressPins(addr);
-          AnalogValues[addr][muxCtr] = adc.adc0->analogRead(analogInPins[muxCtr]);
+          uint16_t raw = adc.adc0->analogRead(analogInPins[muxCtr]);
+          raw = raw >> 3;
+          raw = (AnalogValues[addr][muxCtr] * 7 + raw) >> 3;  // smoothed value (multiplies original value by 7 then adds new, then averages)
+          AnalogValues[addr][muxCtr] = raw;
+          if(iGatherCtr % 4 == 0) // every 1/5 second, store a copy of the current AnalogValues()
+              oldAnalogValues[addr][muxCtr] = AnalogValues[addr][muxCtr];
         }
         digitalWrite(enablePins[muxCtr], HIGH); // disable this mux
+        delayMicroseconds(5);
     }
   }
 }
@@ -363,7 +372,14 @@ void setup() {
   adc.adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED); 
 
   attachInterrupt(digitalPinToInterrupt(CLOCK_IN_PIN), onClockFall, FALLING);
-  
+
+  for(uint8_t i=0; i< NUM_MUXES; i++) {
+      for(uint8_t j=0;j<16;j++) {
+          AnalogValues[j][i] = 0;
+          oldAnalogValues[j][i] = 0;
+      }
+  }
+
   consolePrint("Initialized.");
 }
 
@@ -404,37 +420,52 @@ void onClockFall() {
 }
 
 
-void sendPG800Message() {
-    consolePrintf("%s %02X",  
-        jx8p_param_names[paramCtr], 
-        (uint8_t) (paramValue));
-
-    sendParameter((uint8_t) (paramCtr), (uint8_t) (paramValue));
+void sendPG800Message(uint8_t parmIX, uint8_t value) {
+    display.fillRect(0, 0, SCREEN_WIDTH, 12, SH110X_BLACK);
+    display.setCursor(0,0);
+    display.printf("(%d %d)", parmIX, value);
+    display.fillRect(0, 12, SCREEN_WIDTH, 12, SH110X_BLACK);
+    display.setCursor(0,12);
+    display.printf("%s %02X", 
+        jx8p_param_names[paramIndexTable[parmIX]], 
+        (uint8_t) (value));
+    sendParameter((uint8_t) (paramIndexTable[parmIX]), (uint8_t) (value));
+    display.display();
 }
 
 void handleButtons() {
   if(millis() - lastButtonScan > 100) { // only scan every 1/10 second
     lastButtonScan = millis();
 
-    if(digitalRead(BUTTON_A) == LOW) {
-      bSending = false;
+    uint8_t paramCtr = 0;
+    for(uint8_t i = 0; i < NUM_MUXES; i++) {
+      for(uint8_t j = 0; j < 16; j++) {
+        if(oldAnalogValues[j][i] != AnalogValues[j][i]) {
+          if(activeParams[paramCtr]) {
+              sendPG800Message(paramCtr, AnalogValues[j][i]);
+          }
+        }
+        paramCtr++;
+      }
     }
-
-    paramCtr = (uint8_t)(((long)AnalogValues[0][0] * (long)127) / (long)1023 + (long)128);
-
-    if(paramCtr != oldParamCtr) {
-      oldParamCtr = paramCtr;
-      bSending = true;
-    }
-
-    paramValue = AnalogValues[1][0] >> 3;
-    if(oldParamValue != paramValue) {
-      oldParamValue = paramValue;
-      bSending = true;
-    }
-
-    if(bSending)
-      sendPG800Message();
+     /*
+     display.clearDisplay();
+     uint8_t row = 0;
+     uint8_t col = 0;
+     for(int i=0;i<3; i++) {
+      for(int j=0;j<16;j++) {
+        uint8_t d = (uint8_t) (AnalogValues[j][i] >> 3);
+        display.setCursor(row, col);
+        row = row + 12;
+        if(row > 128) {
+          row = 0;
+          col=col+16;
+        }
+        display.printf("%02X",d);
+        display.display();
+      }
+     }
+    */
   }
 }
 
@@ -444,7 +475,7 @@ void handleButtons() {
    |                                                            |
    -------------------------------------------------------------- */
 void loop() {
-  handleScrolling();
+  //handleScrolling();
   handleButtons();
   gatherPotentiometerValues();
   //updateConsoleScreen();

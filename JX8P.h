@@ -130,60 +130,60 @@ const char* jx8p_param_names[256] = {
   "", // 0x7F
 
   // 0x80–0xAF: defined parameters
-  "11 DCO1 Range",        // 0x80
-  "12 DCO1 Waveform",     // 0x81
-  "13 DCO1 Tune",         // 0x82
-  "14 DCO1 LFO Depth",    // 0x83
-  "15 DCO1 Env Depth",    // 0x84
-  "21 DCO2 Range",        // 0x85
-  "22 DCO2 Waveform",     // 0x86
-  "31 DCO XMOD",          // 0x87
-  "23 DCO2 Tune",         // 0x88
-  "32 DCO2 Fine Tune",    // 0x89
-  "24 DCO2 LFO Depth",    // 0x8A
-  "25 DCO2 Env Depth",    // 0x8B
+  "11 DCO1 Range    ",    // 0x80   -   0
+  "12 DCO1 Waveform ",    // 0x81   -   1 
+  "13 DCO1 Tune     ",    // 0x82   -   2
+  "14 DCO1 LFO Depth",    // 0x83   -   3
+  "15 DCO1 Env Depth",    // 0x84   -   4
+  "21 DCO2 Range    ",    // 0x85   -   5
+  "22 DCO2 Waveform ",    // 0x86   -   6
+  "31 DCO XMOD      ",    // 0x87   -   7
+  "23 DCO2 Tune     ",    // 0x88   -   8
+  "32 DCO2 Fine Tune",    // 0x89   -   9
+  "24 DCO2 LFO Depth",    // 0x8A   -  10
+  "25 DCO2 Env Depth",    // 0x8B   -  11
   "",                     // 0x8C
   "",                     // 0x8D
   "",                     // 0x8E
-  "33 DCO Dynamics",      // 0x8F
-  "34 DCO EG Mode",       // 0x90
-  "41 Mix DCO1",          // 0x91
-  "42 Mix DCO2",          // 0x92
-  "43 Mix Env",           // 0x93
-  "44 Mix Dynamics",      // 0x94
-  "45 Mix EG Mode",       // 0x95
-  "51 VCF HPF",           // 0x96
-  "52 VCF Freq",          // 0x97
-  "53 VCF Resonance",     // 0x98
-  "54 VCF LFO",           // 0x99
-  "55 VCF Env",           // 0x9A
-  "56 VCF Key",           // 0x9B
-  "57 VCF Dynamics",      // 0x9C
-  "58 VCF EG Mode",       // 0x9D
-  "61 VCA Level",         // 0x9E
-  "63 VCA Dynamics",      // 0x9F
-  "64 Chorus",            // 0xA0
-  "71 LFO Waveform",      // 0xA1
-  "72 LFO Delay",         // 0xA2
-  "73 LFO Rate",          // 0xA3
-  "81 EG Env1 Attk",      // 0xA4
-  "82 EG Env1 Decay",     // 0xA5
-  "83 EG Env1 Sust",      // 0xA6
-  "84 EG Env1 Rel",       // 0xA7
-  "85 EG Env1 Key",       // 0xA8
-  "91 EG Env2 Attk",      // 0xA9
-  "92 EG Env2 Decay",     // 0xAA
-  "93 EG Env2 Sust",      // 0xAB
-  "94 EG Env2 Rel",       // 0xAC
-  "95 EG Env2 Key",       // 0xAD
+  "33 DCO Dynamics  ",    // 0x8F   -  12
+  "34 DCO EG Mode   ",    // 0x90   -  13
+  "41 Mix DCO1      ",    // 0x91   -  14
+  "42 Mix DCO2      ",    // 0x92   -  15
+  "43 Mix Env       ",    // 0x93   -  16
+  "44 Mix Dynamics  ",    // 0x94   -  17
+  "45 Mix EG Mode   ",    // 0x95   -  18
+  "51 VCF HPF       ",    // 0x96   -  19
+  "52 VCF Freq      ",    // 0x97   -  20
+  "53 VCF Resonance ",    // 0x98   -  21
+  "54 VCF LFO       ",    // 0x99   -  22
+  "55 VCF Env       ",    // 0x9A   -  23
+  "56 VCF Key       ",    // 0x9B   -  24
+  "57 VCF Dynamics  ",    // 0x9C   -  25
+  "58 VCF EG Mode   ",    // 0x9D   -  26
+  "61 VCA Level     ",    // 0x9E   -  27
+  "63 VCA Dynamics  ",    // 0x9F   -  28
+  "64 Chorus        ",    // 0xA0   -  29
+  "71 LFO Waveform  ",    // 0xA1   -  30
+  "72 LFO Delay     ",    // 0xA2   -  31
+  "73 LFO Rate      ",    // 0xA3   -  32
+  "81 EG Env1 Attk  ",    // 0xA4   -  33
+  "82 EG Env1 Decay ",    // 0xA5   -  34
+  "83 EG Env1 Sust  ",    // 0xA6   -  35
+  "84 EG Env1 Rel   ",    // 0xA7   -  36
+  "85 EG Env1 Key   ",    // 0xA8   -  37
+  "91 EG Env2 Attk  ",    // 0xA9   -  38
+  "92 EG Env2 Decay ",    // 0xAA   -  39
+  "93 EG Env2 Sust  ",    // 0xAB   -  40
+  "94 EG Env2 Rel   ",    // 0xAC   -  41
+  "95 EG Env2 Key   ",    // 0xAD   -  42
   "",                     // 0xAE
-  "62 VCA EG Mode",       // 0xAF
-  "16 PMW1 Width",        // 0xB0
-  "17 PWM1 Env",          // 0xB1
-  "18 PMW1 LFO",          // 0xB2
-  "26 PWM2 Width",        // 0xB3
-  "28 PWM2 Env",          // 0xB4
-  "27 PWM2 LFO",          // 0xB5
+  "62 VCA EG Mode   ",    // 0xAF   -  43
+  "16 PMW1 Width    ",    // 0xB0   -  44
+  "17 PWM1 Env      ",    // 0xB1   -  45
+  "18 PMW1 LFO      ",    // 0xB2   -  46
+  "26 PWM2 Width    ",    // 0xB3   -  47
+  "28 PWM2 Env      ",    // 0xB4   -  48
+  "27 PWM2 LFO      ",    // 0xB5   -  49
   "", // 0xB6
   "", // 0xB7
   "", // 0xB8
@@ -208,15 +208,15 @@ const char* jx8p_param_names[256] = {
   "", // 0xCB
   "", // 0xCC
   "", // 0xCD
-  "35 PWM Dyna",       // 0xCE
+  "35 PWM Dyna      ",       // 0xCE   -  50
   "", // 0xCF
-  "74 LFO Sync",       // 0xD0
+  "74 LFO Sync      ",       // 0xD0   -  51
   "", // 0xD1
   "", // 0xD2
   "", // 0xD3
   "", // 0xD4
   "", // 0xD5
-  "36 PWM Mode",       // 0xD6
+  "36 PWM Mode      ",       // 0xD6   -  52
   "", // 0xD7
   "", // 0xD8
   "", // 0xD9
@@ -227,7 +227,7 @@ const char* jx8p_param_names[256] = {
   "", // 0xDE
   "", // 0xDF
   "", // 0xE0
-  "ROM TONE?",         // 0xE1  - Write command maybe?
+  "ROM TONE?        ",         // 0xE1  - Write command maybe?   - 53
   "", // 0xE2
   "", // 0xE3
   "", // 0xE4
@@ -256,8 +256,8 @@ const char* jx8p_param_names[256] = {
   "", // 0xFB
   "", // 0xFC
   "", // 0xFD
-  "",  // 0xFE
-  ""   // 0xFF
+  "", // 0xFE
+  ""  // 0xFF
 };
 
 
@@ -275,8 +275,19 @@ const char* jx8p_param_names[256] = {
 #define CHORUS 10
 
 
-typedef struct {
-  char* name;
-  uint8_t type;
-}
-parameter;
+#define NUM_PARAMS 52
+uint8_t paramIndexTable[NUM_PARAMS] = {
+ 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b,
+ 0x8F, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9b,
+ 0x9c, 0x9d, 0x9e, 0x9f, 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
+ 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf, 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 
+ 0xb5, 0xce, 0xd0, 0xd6
+};
+
+uint8_t activeParams[NUM_PARAMS] = {
+ 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+ 0x00, 0x00, 0x00, 0x00 
+};
