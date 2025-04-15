@@ -34,6 +34,14 @@ the JMR-800 by tweaking all of the parameters based on loading something from an
 - Decided to lay out the whole interface with my 3D printer as a template first.  This will allow me to cut cleaner holes into the aluminum case I think.
 I'm using an aluminum case from Jameco that looks pretty retro / period correct.
 
+
+April 14, 2025
+
+Worked on the aluminum case a bit today.  Ran out of potentiometers, so ordered some more.
+
+![Picture of controller in process](in_process_pic_1.png)
+
+
 ## License
 
 This project is released under the MIT License.
