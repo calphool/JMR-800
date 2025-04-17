@@ -42,6 +42,25 @@ Worked on the aluminum case a bit today.  Ran out of potentiometers, so ordered 
 ![Picture of controller in process](in_process_pic_1.png)
 
 
+April 17, 2025
+
+Worked on the case some more.  Completed the potentiometer installation, got some knobs and installed them, though I don't like the fact that I didn't get 
+an even number of red and blue, so I need to get another kit of them.  I also don't like the white ones, I think I'll remove those and replace with black.  
+Finally, I couldn't find black 3mm screws, so I had to use stainless steel.  I'm going to change that, it ruins the asthetic.
+
+Once I get all that settled, it's back to the software and firmware.  I redesigned the PCB about a week ago, but I think I'm going to need to do a slight 
+additional redesign.  The four push buttons have two LEDs on them, a red one and a green one.  I really don't know exactly what I'm going to use them 
+for yet, but I'm going to need an output shift register to manage all 8 of them (as well as current limiting resistors for each one, which would probably 
+be best on the board rather than dangling and inline with the wires.
+
+The software already works in a prototype way (two potentiometers that I tested with), so hopefully there won't be any surprises when I get all of them 
+running.  I also added an additional 3.3V regulator that's optional on the new design, since I'm not altogether sure that the tiny little regulator on the 
+Teensy can handle all the load I'm throwing at it.
+
+![Picture of controller in process - top view](in_process_pic_2.jpg)
+![Picture of controller in process - inside view](in_process_pic_3.jpg)
+
+
 ## License
 
 This project is released under the MIT License.
