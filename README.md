@@ -1,7 +1,7 @@
 # JMR-800
 
 ![Picture of PG-800](PG-800.png)
-![PCB View of JMR-800](3DView_PCB.png)
+![PCB View of JMR-800](3d_image.png)
 
 **JMR-800** is a modern, open-source clone of the Roland PG-800 hardware programmer, built around the Teensy 4.1 microcontroller. It provides real-time 
 parameter control for vintage Roland synthesizers such as the JX-8P, MKS-70, and JX-10 using the original PG-800 communication protocol.
