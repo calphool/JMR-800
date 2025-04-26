@@ -8,7 +8,8 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
-Adafruit_SH1106G display = Adafruit_SH1106G(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_SH1106G display = Adafruit_SH1106G(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET); // note, for WIRE on Teensy 4.1
+                                                                                             // SDA = 18, SCL = 19
 ADC adc;
 
 // Console config
@@ -32,25 +33,27 @@ int scrollOffset = 0;
 #define U2_ENABLE_PIN 4
 #define U3_ENABLE_PIN 5
 #define U4_ENABLE_PIN 6
+#define U6_ENABLE_PIN 7
 #define U2_ANALOG_IN_PIN 23
 #define U3_ANALOG_IN_PIN 22
 #define U4_ANALOG_IN_PIN 21
+#define U6_ANALOG_IN_PIN 20
 #define S0_PIN 0
 #define S1_PIN 1
 #define S2_PIN 2 
 #define S3_PIN 3
-#define NUM_MUXES 3
+#define NUM_MUXES 4
 #define READYOUT_PIN 10
 #define CLOCK_IN_PIN 11
 #define DATA_OUT_PIN 12
 #define OLED_I2C_ADDRESS 0x3c
 
-uint enablePins[NUM_MUXES] = { U2_ENABLE_PIN, U3_ENABLE_PIN, U4_ENABLE_PIN };
+uint enablePins[NUM_MUXES] = { U2_ENABLE_PIN, U3_ENABLE_PIN, U4_ENABLE_PIN, U6_ENABLE_PIN };
 uint MuxAddressPins[4] = { S0_PIN, S1_PIN, S2_PIN, S3_PIN };
-uint analogInPins[NUM_MUXES] = { U2_ANALOG_IN_PIN, U3_ANALOG_IN_PIN, U4_ANALOG_IN_PIN };
+uint analogInPins[NUM_MUXES] = { U2_ANALOG_IN_PIN, U3_ANALOG_IN_PIN, U4_ANALOG_IN_PIN , U6_ANALOG_IN_PIN};
 
-uint16_t AnalogValues[16][3];
-uint16_t oldAnalogValues[16][3];
+uint16_t AnalogValues[16][NUM_MUXES];
+uint16_t oldAnalogValues[16][NUM_MUXES];
 
 bool stickyScrollEnabled = true;
 static unsigned long lastScreenUpdateTime = 0;
@@ -92,7 +95,7 @@ void printAnalogValuesAsHexCompactReordered() {
   int idx = 0;
   int count = 0;
 
-  for (int col = 0; col < 3; col++) {
+  for (int col = 0; col < NUM_MUXES; col++) {
     for (int row = 0; row < 16; row++) {
       if (count % 7 == 0) {
         if (count != 0) {
@@ -448,24 +451,6 @@ void handleButtons() {
         paramCtr++;
       }
     }
-     /*
-     display.clearDisplay();
-     uint8_t row = 0;
-     uint8_t col = 0;
-     for(int i=0;i<3; i++) {
-      for(int j=0;j<16;j++) {
-        uint8_t d = (uint8_t) (AnalogValues[j][i] >> 3);
-        display.setCursor(row, col);
-        row = row + 12;
-        if(row > 128) {
-          row = 0;
-          col=col+16;
-        }
-        display.printf("%02X",d);
-        display.display();
-      }
-     }
-    */
   }
 }
 
