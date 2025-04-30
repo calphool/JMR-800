@@ -58,7 +58,6 @@ running.  I also added an additional 3.3V regulator that's optional on the new d
 Teensy can handle all the load I'm throwing at it.
 
 ![Picture of controller in process - top view](in_process_pic_2.jpg)
-![Picture of controller in process - inside view](in_process_pic_3.jpg)
 
 
 April 29, 2025
