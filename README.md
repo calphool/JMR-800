@@ -61,6 +61,13 @@ Teensy can handle all the load I'm throwing at it.
 ![Picture of controller in process - inside view](in_process_pic_3.jpg)
 
 
+April 29, 2025
+
+![completed hardware](in_process_pic_3.jpg)
+
+Got the new PCB and the rest of the hardware put together.  I wrote some temporary code that implements a "TEST MODE" that shows the condition of all 
+the knobs.
+
 ## License
 
 This project is released under the MIT License.
