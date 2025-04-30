@@ -23,30 +23,48 @@ char textBuffer[BUFFER_ROWS][MAX_COLS + 1];
 int head = 0;
 int count = 0;
 int scrollOffset = 0;
+uint8_t ledPattern = 0b00000001;
 
-// Buttons
-#define SCROLL_UP_PIN 31
-#define SCROLL_DOWN_PIN 32
-#define BUTTON_A 29
-#define BUTTON_B 30
 
 #define U2_ENABLE_PIN 4
 #define U3_ENABLE_PIN 5
 #define U4_ENABLE_PIN 6
 #define U6_ENABLE_PIN 7
+
 #define U2_ANALOG_IN_PIN 23
 #define U3_ANALOG_IN_PIN 22
 #define U4_ANALOG_IN_PIN 21
 #define U6_ANALOG_IN_PIN 20
+
 #define S0_PIN 0
 #define S1_PIN 1
 #define S2_PIN 2 
 #define S3_PIN 3
+
 #define NUM_MUXES 4
+
+// synthesizer input pins
 #define READYOUT_PIN 10
 #define CLOCK_IN_PIN 11
 #define DATA_OUT_PIN 12
+
 #define OLED_I2C_ADDRESS 0x3c
+
+// Buttons
+#define PUSH_BTN_SW4_PIN 29
+#define PUSH_BTN_SW3_PIN 28
+#define PUSH_BTN_SW2_PIN 27
+#define PUSH_BTN_SW1_PIN 26
+
+// button lights shift register
+#define SHIFT_REG_SER 32
+#define SHIFT_REG_SRCLK 31
+#define SHIFT_REG_RCLK 30
+
+// Encoder
+#define ENCODER_CLK_PIN 13
+#define ENCODER_DT_PIN 14
+#define ENCODER_SW_PIN 15
 
 uint enablePins[NUM_MUXES] = { U2_ENABLE_PIN, U3_ENABLE_PIN, U4_ENABLE_PIN, U6_ENABLE_PIN };
 uint MuxAddressPins[4] = { S0_PIN, S1_PIN, S2_PIN, S3_PIN };
@@ -56,13 +74,13 @@ uint16_t AnalogValues[16][NUM_MUXES];
 uint16_t oldAnalogValues[16][NUM_MUXES];
 
 bool stickyScrollEnabled = true;
-static unsigned long lastScreenUpdateTime = 0;
+//static unsigned long lastScreenUpdateTime = 0;
 static unsigned long lastPotScanTime = 0;
-static unsigned long lastButtonScan = 0;
-static uint16_t paramCtr = 0x00;
-static uint16_t oldParamCtr = 0xff;
-static uint16_t paramValue = 0xff;
-static uint16_t oldParamValue = 0xff;
+//static unsigned long lastButtonScan = 0;
+
+static int ENC_counter = 0;
+static int ENC_currentStateCLK;
+static int ENC_lastStateCLK;
 
 volatile uint16_t sendBuffer = 0;
 volatile int bitIndex = -1;
@@ -84,12 +102,14 @@ void setAddressPins(uint val) {
 }
 
 
+
 /* --------------------------------------------------------------
    |                                                            |
    |  Print the values of the potentiometer buffer              |
    |  Invoked by: updateConsoleScreen()                         |
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void printAnalogValuesAsHexCompactReordered() {
   char line[22];  // 7 values * 3 chars ("XX ") = 21 + null
   int idx = 0;
@@ -117,6 +137,7 @@ void printAnalogValuesAsHexCompactReordered() {
     consolePrint(line);
   }
 }
+*/ 
 
 
 /* --------------------------------------------------------------
@@ -125,6 +146,7 @@ void printAnalogValuesAsHexCompactReordered() {
    |  Invoked by: loop()                                        |
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void handleScrolling() {
   // Handle scroll buttons
   if (digitalRead(SCROLL_UP_PIN) == LOW) {
@@ -147,7 +169,7 @@ void handleScrolling() {
     }
   }
 }
-
+*/
 
 /* --------------------------------------------------------------
    |                                                            |
@@ -165,7 +187,7 @@ void gatherPotentiometerValues() {
         for(uint8_t addr = 0; addr < 16; addr++) {
           setAddressPins(addr);
           uint16_t raw = adc.adc0->analogRead(analogInPins[muxCtr]);
-          raw = raw >> 3;
+          raw = raw >> 2;          // (1024 / 4 = 256)
           raw = (AnalogValues[addr][muxCtr] * 7 + raw) >> 3;  // smoothed value (multiplies original value by 7 then adds new, then averages)
           AnalogValues[addr][muxCtr] = raw;
           if(iGatherCtr % 4 == 0) // every 1/5 second, store a copy of the current AnalogValues()
@@ -183,6 +205,7 @@ void gatherPotentiometerValues() {
    |  Invoked by:  loop()                                       |
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void updateConsoleScreen() {
   // Read analogs every 2 seconds and print
   if (millis() - lastScreenUpdateTime > 2000) {
@@ -191,6 +214,8 @@ void updateConsoleScreen() {
     addLine("\n");
   }
 }
+*/
+
 
 /* --------------------------------------------------------------
    |                                                            |
@@ -198,6 +223,7 @@ void updateConsoleScreen() {
    |  Invoked by:  nowhere at this time                         |
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void clearConsoleBuffer() {
   head = 0;
   count = 0;
@@ -210,6 +236,7 @@ void clearConsoleBuffer() {
 
   renderBuffer();
 }
+*/
 
 /* --------------------------------------------------------------
    |                                                            |
@@ -217,13 +244,14 @@ void clearConsoleBuffer() {
    |  Invoked by: wrapAndAddLines() and updateConsoleScreen()   |
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void addLine(const char* line) {
   strncpy(textBuffer[head], line, MAX_COLS);
   textBuffer[head][MAX_COLS] = '\0';
   head = (head + 1) % BUFFER_ROWS;
   if (count < BUFFER_ROWS) count++;
 }
-
+*/
 
 /* --------------------------------------------------------------
    |                                                            |
@@ -231,6 +259,7 @@ void addLine(const char* line) {
    |  Invoked by: consolePrint()                                |
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void wrapAndAddLines(const char* text) {
   int len = strlen(text);
   char segment[MAX_COLS + 1];
@@ -258,7 +287,7 @@ void wrapAndAddLines(const char* text) {
     len = strlen(text);
   }
 }
-
+*/
 
 
 /* --------------------------------------------------------------
@@ -267,6 +296,7 @@ void wrapAndAddLines(const char* text) {
    |  Invoked by: consolePrintf()                               |
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void consolePrint(const char* text) {
   // Only scroll if sticky scroll is enabled
   wrapAndAddLines(text);
@@ -275,7 +305,7 @@ void consolePrint(const char* text) {
   }
   renderBuffer();
 }
-
+*/
 
 /* --------------------------------------------------------------
    |                                                            |
@@ -283,6 +313,7 @@ void consolePrint(const char* text) {
    |  Invoked by: nothing at this time
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void consolePrintf(const char* fmt, ...) {
   char buffer[256];  // long enough for most uses
   va_list args;
@@ -291,7 +322,7 @@ void consolePrintf(const char* fmt, ...) {
   va_end(args);
   consolePrint(buffer);
 }
-
+*/
 
 /* --------------------------------------------------------------
    |                                                            |
@@ -299,6 +330,7 @@ void consolePrintf(const char* fmt, ...) {
    |  Invoked by: renderBuffer()                                |
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void drawScrollBar() {
   if (count <= MAX_ROWS) return;  // No need for scrollbar
 
@@ -310,7 +342,7 @@ void drawScrollBar() {
   display.drawLine(trackX, 0, trackX, trackHeight - 1, SH110X_WHITE);   // Draw the track
   display.drawFastVLine(trackX, thumbY, thumbHeight, SH110X_BLACK);  // Draw the thumb, Invert to make it stand out
 }
-
+*/
 
 /* --------------------------------------------------------------
    |                                                            |
@@ -319,6 +351,7 @@ void drawScrollBar() {
    |              consolePrint()                                |
    |                                                            |
    -------------------------------------------------------------- */
+/*
 void renderBuffer() {
   display.clearDisplay();
   int visible = min(MAX_ROWS, count - scrollOffset);
@@ -333,6 +366,7 @@ void renderBuffer() {
   drawScrollBar();
   display.display();
 }
+*/
 
 
 
@@ -342,10 +376,19 @@ void renderBuffer() {
    |                                                            |
    -------------------------------------------------------------- */
 void setup() {
-  pinMode(SCROLL_UP_PIN, INPUT_PULLUP);
-  pinMode(SCROLL_DOWN_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_A, INPUT_PULLUP);
-  pinMode(BUTTON_B, INPUT_PULLUP);
+  Serial.begin(9600);
+  pinMode(PUSH_BTN_SW4_PIN, INPUT_PULLUP);
+  pinMode(PUSH_BTN_SW3_PIN, INPUT_PULLUP);
+  pinMode(PUSH_BTN_SW2_PIN, INPUT_PULLUP);
+  pinMode(PUSH_BTN_SW1_PIN, INPUT_PULLUP);
+  pinMode(ENCODER_SW_PIN,   INPUT_PULLUP);
+  pinMode(ENCODER_CLK_PIN,  INPUT);
+  pinMode(ENCODER_DT_PIN,   INPUT);
+
+  pinMode(SHIFT_REG_SER,    OUTPUT);
+  pinMode(SHIFT_REG_SRCLK,  OUTPUT);
+  pinMode(SHIFT_REG_RCLK,   OUTPUT);
+
   for(uint i = 0; i < NUM_MUXES; i++) {
     pinMode(enablePins[i], OUTPUT);             // set enable pins as output
     digitalWrite(enablePins[i], HIGH);          // disable enable pins
@@ -370,11 +413,20 @@ void setup() {
   display.setTextWrap(false);
   display.display();
 
+  log("Setting up ADC...");
+
   adc.adc0->setAveraging(4);
   adc.adc0->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED);
   adc.adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED); 
 
-  attachInterrupt(digitalPinToInterrupt(CLOCK_IN_PIN), onClockFall, FALLING);
+  ENC_lastStateCLK = digitalRead(ENCODER_CLK_PIN);
+
+  log("Attaching interrupts...");
+
+  attachInterrupt(digitalPinToInterrupt(CLOCK_IN_PIN), onPG800ClockFall, FALLING);
+  attachInterrupt(digitalPinToInterrupt(ENCODER_CLK_PIN), updateEncoder, CHANGE);
+
+  log("Setting up DAC tables...");
 
   for(uint8_t i=0; i< NUM_MUXES; i++) {
       for(uint8_t j=0;j<16;j++) {
@@ -383,9 +435,43 @@ void setup() {
       }
   }
 
-  consolePrint("Initialized.");
+  log("Initialized.");
 }
 
+void log(char* s) {
+  Serial.printf("%s\n", s);
+}
+
+void updateEncoder() {
+  ENC_currentStateCLK = digitalRead(ENCODER_CLK_PIN);
+
+  if (ENC_currentStateCLK != ENC_lastStateCLK && ENC_currentStateCLK == 1) {
+    if (digitalRead(ENCODER_DT_PIN) != ENC_currentStateCLK) {
+      ENC_counter--;
+    } else {
+      ENC_counter++;
+    }
+  }
+
+  ENC_lastStateCLK = ENC_currentStateCLK;
+}
+
+
+void setLEDs(uint8_t data) {
+  digitalWrite(SHIFT_REG_RCLK, LOW);  // Start by disabling latch
+
+  // Shift out 8 bits, MSB first
+  for (int8_t i = 7; i >= 0; i--) {
+    digitalWrite(SHIFT_REG_SRCLK, LOW);  // Prepare for clock
+
+    bool bitVal = data & (1 << i);       // Extract current bit
+    digitalWrite(SHIFT_REG_SER, bitVal); // Set data line
+
+    digitalWrite(SHIFT_REG_SRCLK, HIGH); // Rising edge clocks bit into register
+  }
+
+  digitalWrite(SHIFT_REG_RCLK, HIGH);    // Latch data to output pins
+}
 
 
 void sendParameter(uint8_t paramID, uint8_t value) {
@@ -404,8 +490,8 @@ void sendParameter(uint8_t paramID, uint8_t value) {
 }
 
 
-// Called on each rising edge of CLOCK
-void onClockFall() {
+// Called on each synth CLOCK fall
+void onPG800ClockFall() {
   if (bitIndex < 0) return;  // Not currently sending
 
   delayMicroseconds(10);
@@ -436,6 +522,7 @@ void sendPG800Message(uint8_t parmIX, uint8_t value) {
     display.display();
 }
 
+/*
 void handleButtons() {
   if(millis() - lastButtonScan > 100) { // only scan every 1/10 second
     lastButtonScan = millis();
@@ -453,6 +540,111 @@ void handleButtons() {
     }
   }
 }
+*/
+
+void gatherControlSettings() {
+  gatherPotentiometerValues();
+
+  //TODO: gather buttons, gather encoder, gather encoder switch setting
+}
+
+void drawKnobArrow(int x, int y, int deg) {         // TODO: rewrite this to use precomputed values 
+  // Center of the knob sprite
+  int cx = x + 4;
+  int cy = y + 3;
+  
+  // Convert degrees to radians
+  float rad = deg * (PI / 180.0);
+
+  // Adjust for your rotation: 0° = south, 90° = west, 180° = north, 270° = east
+  float adj_rad = rad + PI*.33; // rotate 90 degrees counterclockwise
+
+  // Length of the pointer
+  int length = 3;
+
+  // Calculate end point
+  int ex = cx + round(length * cos(adj_rad));
+  int ey = cy + round(length * sin(adj_rad));
+
+  // Draw line from center to end point
+  display.drawLine(cx, cy, ex, ey, SH110X_BLACK);
+}
+
+
+
+void drawKnob(int x, int y, int i) {
+  display.fillRect(x+2, y+1, 6, 4, SH110X_WHITE);
+  display.drawLine(x+3, y, x+6, y, SH110X_WHITE);
+  display.drawLine(x+3, y+5, x+6, y+5, SH110X_WHITE);
+  display.drawLine(x+1, y+2, x+1, y+3, SH110X_WHITE);
+  display.drawLine(x+8, y+2, x+8, y+3, SH110X_WHITE);
+
+  // i ranges from 0 - 255
+  int j = (float)(360 * ((float)i/255));
+  drawKnobArrow(x,y,j);
+}
+
+void drawButton(int x, int y, bool red, bool green) {
+  display.fillRect(x+1, y, 8, 6, SH110X_WHITE);
+  display.drawLine(x+2, y+2, x+7, y+2, SH110X_BLACK);
+  
+  if(red) 
+    display.drawLine(x+2,y+1, x+3, y+1, SH110X_BLACK);
+  if(green)
+    display.drawLine(x+6,y+1, x+7, y+1, SH110X_BLACK);
+}
+
+uint knobXformer[] = {
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 
+ 32,33,34,35,36,37,38,39,40,41, 42, 43, 44, 45, 46, 47,
+ 16,17,18,19,20,21,22,23,24,25, 26, 27, 28, 29, 30, 31,
+ 48,49,50,51,52,53,54,55
+};
+
+inline uint getKnobValue(uint knobIX) {
+  knobIX = knobXformer[knobIX];              // transform this index (necessary because of wiring) 
+  uint mux = knobIX >> 4;
+  uint mux_ix = knobIX & 0x0F;
+
+  return 255-AnalogValues[mux_ix][mux];
+}
+
+void drawScreen() {
+    uint knobIX = 0;
+    uint knobpos;
+    display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
+    display.setCursor(10,0);                                           // position for title
+    display.printf("JMR800 TEST SCREEN");                              // title
+    display.drawRect(0, 9, SCREEN_WIDTH, 54, SH110X_WHITE);            // box around UI
+    display.drawRect(90, 16, 18, 10, SH110X_WHITE);                    // small screen rectangle
+    for(int i=9; i<80; i = i + 10) {                                   // knobs on the left side
+      for(int j=14; j<62; j = j + 8) {
+          knobIX++;
+          knobpos = getKnobValue(knobIX-1);
+          drawKnob(i,j,knobpos);
+      }
+    }
+    for(int i=89; i < 100; i = i + 10) {                               // knobs on the right side
+      for(int j=30; j < 62; j = j + 8) {
+        knobIX++;
+        knobpos = getKnobValue(knobIX-1);
+        drawKnob(i,j,knobpos);
+      }
+    }
+    drawKnob(109, 18, 0);                                              // encoder knob
+
+    for(int j=30; j < 62; j = j + 8) {                                 // buttons
+      drawButton(109, j, false, false);
+    }
+    display.display();
+}
+
+
+
+void shiftLights() {
+  setLEDs(ledPattern);
+  ledPattern = (ledPattern << 1) | (ledPattern >> 7);
+}
 
 /* --------------------------------------------------------------
    |                                                            |
@@ -460,9 +652,9 @@ void handleButtons() {
    |                                                            |
    -------------------------------------------------------------- */
 void loop() {
-  //handleScrolling();
-  handleButtons();
-  gatherPotentiometerValues();
-  //updateConsoleScreen();
+  gatherControlSettings();
+  drawScreen();
+  shiftLights();
+  delay(10);
 }
 
