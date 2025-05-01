@@ -20,10 +20,7 @@ ADC adc;
 #define MAX_ROWS (SCREEN_HEIGHT / CHAR_HEIGHT)   // 8
 #define BUFFER_ROWS 64                           // Scrollback buffer depth
 
-char textBuffer[BUFFER_ROWS][MAX_COLS + 1];
-int head = 0;
-int count = 0;
-int scrollOffset = 0;
+// LED pattern buffer
 uint8_t ledPattern = 0b00000000;
 
 // MUX enable pins
@@ -86,7 +83,10 @@ uint8_t prevButtonStates[NUM_BUTTONS] = {0}; // Previous button state
 Encoder encoderKnob(ENCODER_CLK_PIN, ENCODER_DT_PIN);
 
 // encoder position
-long lastPosition = 0;
+long lastEncoderPosition = 0;
+
+// test screen refresh counter
+long lastdrawTestScreen = 0;
 
 // array of pins for mux enable
 uint enablePins[NUM_MUXES] = { U2_ENABLE_PIN, U3_ENABLE_PIN, U4_ENABLE_PIN, U6_ENABLE_PIN };
@@ -137,42 +137,306 @@ void setAddressPins(uint val) {
 
 
 /* --------------------------------------------------------------
-   |                                                            |
    |  Gather potentiometer values every quarter second          |
    |  Invoked by: loop()                                        |
-   |                                                            |
    -------------------------------------------------------------- */
 static int iGatherCtr = 0;
 void gatherPotentiometerValues() {
-  if(millis() - lastPotScanTime > 50) {   // scan only periodically
-    iGatherCtr++;
-    lastPotScanTime = millis();
-    for(uint8_t muxCtr = 0; muxCtr < NUM_MUXES; muxCtr++) {
-        digitalWrite(enablePins[muxCtr], LOW);  // enable this mux
-        for(uint8_t addr = 0; addr < 16; addr++) {
-          setAddressPins(addr);
-          uint16_t raw = adc.adc0->analogRead(analogInPins[muxCtr]);
-          raw = raw >> 2;          // (1024 / 4 = 256)
-          raw = (AnalogValues[addr][muxCtr] * 7 + raw) >> 3;  // smoothed value (multiplies original value by 7 then adds new, then averages)
-          AnalogValues[addr][muxCtr] = raw;
-          if(iGatherCtr % 4 == 0) // every 1/5 second, store a copy of the current AnalogValues()
-              oldAnalogValues[addr][muxCtr] = AnalogValues[addr][muxCtr];
-        }
-        digitalWrite(enablePins[muxCtr], HIGH); // disable this mux
-        delayMicroseconds(5);
-    }
+  if(millis() - lastPotScanTime < 50)
+    return;
+
+  iGatherCtr++;
+  lastPotScanTime = millis();
+  for(uint8_t muxCtr = 0; muxCtr < NUM_MUXES; muxCtr++) {
+      digitalWrite(enablePins[muxCtr], LOW);  // enable this mux
+      for(uint8_t addr = 0; addr < 16; addr++) {
+        setAddressPins(addr);
+        uint16_t raw = adc.adc0->analogRead(analogInPins[muxCtr]);
+        raw = raw >> 2;          // (1024 / 4 = 256)
+        raw = (AnalogValues[addr][muxCtr] * 7 + raw) >> 3;  // smoothed value (multiplies original value by 7 then adds new, then averages)
+        AnalogValues[addr][muxCtr] = raw;
+        if(iGatherCtr % 4 == 0) // every 1/5 second, store a copy of the current AnalogValues()
+            oldAnalogValues[addr][muxCtr] = AnalogValues[addr][muxCtr];
+      }
+      digitalWrite(enablePins[muxCtr], HIGH); // disable this mux
+      delayMicroseconds(5);
   }
 }
 
 
 
+/* 
+   --------------------------------------------------------------
+   |  Logging routine                                           |
+   -------------------------------------------------------------- 
+*/
+void log(const String& s) {
+  Serial.println(s);
+}
+
+
+/* 
+   --------------------------------------------------------------
+   |  Shift register routine for LEDs                           |
+   -------------------------------------------------------------- 
+*/
+void setLEDs(uint8_t data) {
+  digitalWrite(SHIFT_REG_RCLK, LOW);  // Start by disabling latch
+
+  // Shift out 8 bits, MSB first
+  for (int8_t i = 7; i >= 0; i--) {
+    digitalWrite(SHIFT_REG_SRCLK, LOW);  // Prepare for clock
+
+    bool bitVal = data & (1 << i);       // Extract current bit
+    digitalWrite(SHIFT_REG_SER, bitVal); // Set data line
+
+    digitalWrite(SHIFT_REG_SRCLK, HIGH); // Rising edge clocks bit into register
+  }
+
+  digitalWrite(SHIFT_REG_RCLK, HIGH);    // Latch data to output pins
+}
+
+/* 
+   --------------------------------------------------------------
+   |  sendParameter -- code that sends data to synthesizer      |
+   -------------------------------------------------------------- 
+*/
+void sendParameter(uint8_t paramID, uint8_t value) {
+  while (bitIndex != -1);  // Wait until previous transfer is complete
+
+  noInterrupts();
+  sendBuffer = ((uint16_t)paramID << 8) | value;
+  bitIndex = 15;
+  bool bit = (sendBuffer >> bitIndex) & 1;
+  digitalWrite(DATA_OUT_PIN, bit ? LOW : HIGH);
+  bitIndex--;
+  
+  digitalWrite(READYOUT_PIN, HIGH);  // Begin transmission
+  //delayMicroseconds(5);
+  interrupts();
+}
+
+
+/* 
+   --------------------------------------------------------------
+   |  onPG800ClockFall -- loop that synchronizes the controller |
+   |  with the synthesizer                                      |
+   -------------------------------------------------------------- 
+*/
+void onPG800ClockFall() {
+  if (bitIndex < 0) return;  // Not currently sending
+
+  delayMicroseconds(10);
+  // DATA is negative logic, so we invert the bit
+  bool bit = (sendBuffer >> bitIndex) & 1;
+  digitalWrite(DATA_OUT_PIN, bit ? LOW : HIGH);  // inverted logic
+
+  bitIndex--;
+  if (bitIndex < 0) {
+    delayMicroseconds(5);
+    digitalWrite(READYOUT_PIN, LOW);           // End of transfer
+    delayMicroseconds(10);
+    digitalWrite(DATA_OUT_PIN, LOW);           // Idle state
+  }
+}
+
+/* 
+   --------------------------------------------------------------
+   |  sendPG800Message -- Routine that sends message and shows  |
+   |  what the parameter is on the screen                       |
+   -------------------------------------------------------------- 
+*/
+void sendPG800Message(uint8_t parmIX, uint8_t value) {
+    display.fillRect(0, 0, SCREEN_WIDTH, 12, SH110X_BLACK);
+    display.setCursor(0,0);
+    display.printf("(%d %d)", parmIX, value);
+    display.fillRect(0, 12, SCREEN_WIDTH, 12, SH110X_BLACK);
+    display.setCursor(0,12);
+    display.printf("%s %02X", 
+        jx8p_param_names[paramIndexTable[parmIX]], 
+        (uint8_t) (value));
+    sendParameter((uint8_t) (paramIndexTable[parmIX]), (uint8_t) (value));
+    display.display();
+}
+
+/* 
+   ---------------------------------------------------------------
+   |  gatherControlSettings -- handles button depresses and sets |
+   |  LED status                                                 |
+   --------------------------------------------------------------- 
+*/
+void gatherControlSettings() {
+  gatherPotentiometerValues();
+
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    buttonStates[i] = !digitalRead(buttonPins[i]); // Active low
+
+    if (buttonStates[i] && !prevButtonStates[i]) {
+      // Rising edge: button just pressed
+      log("button " + String(i + 1));
+
+      uint8_t shift = (3 - i) * 2; // Maps button 0 to bits 6-7, 1 to 4-5, etc.
+      uint8_t mask = 0b11 << shift;
+      uint8_t current = (ledPattern & mask) >> shift;
+      uint8_t next = cycleLedState(current);
+
+      ledPattern = (ledPattern & ~mask) | (next << shift);
+    }
+
+    prevButtonStates[i] = buttonStates[i]; // Update for next check
+  }
+
+  bEncoderBtn = !digitalRead(ENCODER_SW_PIN);
+  updateEncoder();
+}
+
+/* 
+   ---------------------------------------------------------------
+   |  updateEncoder -- encoder handler                           |
+   --------------------------------------------------------------- 
+*/
+void updateEncoder() {
+  long newPosition = encoderKnob.read();
+
+  if (newPosition != lastEncoderPosition) {
+    if (newPosition > lastEncoderPosition) {
+      log("CCW " + String(lastEncoderPosition>>2));
+    } else {
+      log("CW  " + String(lastEncoderPosition>>2));
+    }
+
+    lastEncoderPosition = newPosition;
+  }
+}
+
+
+void drawKnobArrow(int x, int y, int deg) {         // TODO: rewrite this to use precomputed values 
+  // Center of the knob sprite
+  int cx = x + 4;
+  int cy = y + 3;
+  
+  // Convert degrees to radians
+  float rad = deg * (PI / 180.0);
+
+  // Adjust for your rotation: 0° = south, 90° = west, 180° = north, 270° = east
+  float adj_rad = rad + PI*.33; // rotate 90 degrees counterclockwise
+
+  // Length of the pointer
+  int length = 3;
+
+  // Calculate end point
+  int ex = cx + round(length * cos(adj_rad));
+  int ey = cy + round(length * sin(adj_rad));
+
+  // Draw line from center to end point
+  display.drawLine(cx, cy, ex, ey, SH110X_BLACK);
+}
+
+
+
+void drawKnob(int x, int y, int i) {
+  display.fillRect(x+2, y+1, 6, 4, SH110X_WHITE);
+  display.drawLine(x+3, y, x+6, y, SH110X_WHITE);
+  display.drawLine(x+3, y+5, x+6, y+5, SH110X_WHITE);
+  display.drawLine(x+1, y+2, x+1, y+3, SH110X_WHITE);
+  display.drawLine(x+8, y+2, x+8, y+3, SH110X_WHITE);
+
+  if(i != -1) {
+    // i ranges from 0 - 255
+    int j = (float)(360 * ((float)i/255));
+    drawKnobArrow(x,y,j);
+  }
+  else {
+    if(bEncoderBtn)
+        display.fillRect(x+2, y+1, 6, 4, SH110X_BLACK);
+  }
+}
+
+void drawButton(int x, int y, bool red, bool green, uint8_t depressed) {
+  display.fillRect(x+1, y, 8, 6, SH110X_WHITE);
+  display.drawLine(x+2, y+2, x+7, y+2, SH110X_BLACK);
+  
+  if(depressed)
+    display.fillRect(x+2, y+2, 6, 3, SH110X_BLACK);
+
+  if(green) 
+    display.drawLine(x+2,y+1, x+3, y+1, SH110X_BLACK);
+  if(red)
+    display.drawLine(x+6,y+1, x+7, y+1, SH110X_BLACK);
+}
+
+uint knobXformer[] = {
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 
+ 32,33,34,35,36,37,38,39,40,41, 42, 43, 44, 45, 46, 47,
+ 16,17,18,19,20,21,22,23,24,25, 26, 27, 28, 29, 30, 31,
+ 48,49,50,51,52,53,54,55
+};
+
+inline uint getKnobValue(uint knobIX) {
+  knobIX = knobXformer[knobIX];              // transform this index (necessary because of wiring) 
+  uint mux = knobIX >> 4;
+  uint mux_ix = knobIX & 0x0F;
+
+  return 255-AnalogValues[mux_ix][mux];
+}
+
 /* --------------------------------------------------------------
-   |                                                            |
+   |  drawTestScreen()                                          |
+   -------------------------------------------------------------- */
+void drawTestScreen() {
+    uint knobIX = 0;
+    uint btnCtr = 3;
+    uint knobpos;
+
+    if(millis() - lastdrawTestScreen < 33) 
+      return;
+
+    lastdrawTestScreen = millis();
+
+    display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
+    display.setCursor(10,0);                                           // position for title
+    display.printf("JMR800 TEST SCREEN");                              // title
+    display.drawRect(0, 9, SCREEN_WIDTH, 54, SH110X_WHITE);            // box around UI
+    display.drawRect(88, 15, 21, 11, SH110X_WHITE);                    // small screen rectangle
+    display.setCursor(90, 17);
+    display.printf("%03d", abs((lastEncoderPosition>>2) % 1000));
+    for(int i=7; i<78; i = i + 10) {                                   // knobs on the left side
+      for(int j=14; j<62; j = j + 8) {
+          knobIX++;
+          knobpos = getKnobValue(knobIX-1);
+          drawKnob(i,j,knobpos);
+      }
+    }
+    for(int i=87; i < 98; i = i + 10) {                               // knobs on the right side
+      for(int j=30; j < 62; j = j + 8) {
+        knobIX++;
+        knobpos = getKnobValue(knobIX-1);
+        drawKnob(i,j,knobpos);
+      }
+    }
+    drawKnob(109, 18, -1);                                              // encoder knob
+
+    for(int j=30; j < 62; j = j + 8) {                                 // buttons
+      if(btnCtr == 3)
+        drawButton(109, j, ledPattern & 0b10000000, ledPattern & 0b01000000, buttonStates[0]);
+      else
+      if(btnCtr == 2)
+        drawButton(109, j, ledPattern & 0b00100000, ledPattern & 0b00010000, buttonStates[1]);
+      else
+      if(btnCtr == 1)
+        drawButton(109, j, ledPattern & 0b00001000, ledPattern & 0b00000100, buttonStates[2]);
+      else
+        drawButton(109, j, ledPattern & 0b00000010, ledPattern & 0b00000001, buttonStates[3]);
+      btnCtr--;
+    }
+    display.display();
+}
+
+/* --------------------------------------------------------------
    |  Initialization                                            |
-   |                                                            |
    -------------------------------------------------------------- */
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   pinMode(PUSH_BTN_SW4_PIN, INPUT_PULLUP);
   pinMode(PUSH_BTN_SW3_PIN, INPUT_PULLUP);
   pinMode(PUSH_BTN_SW2_PIN, INPUT_PULLUP);
@@ -232,237 +496,13 @@ void setup() {
   log("Initialized.");
 }
 
-void log(const String& s) {
-  Serial.println(s);
-}
-
-
-void setLEDs(uint8_t data) {
-  digitalWrite(SHIFT_REG_RCLK, LOW);  // Start by disabling latch
-
-  // Shift out 8 bits, MSB first
-  for (int8_t i = 7; i >= 0; i--) {
-    digitalWrite(SHIFT_REG_SRCLK, LOW);  // Prepare for clock
-
-    bool bitVal = data & (1 << i);       // Extract current bit
-    digitalWrite(SHIFT_REG_SER, bitVal); // Set data line
-
-    digitalWrite(SHIFT_REG_SRCLK, HIGH); // Rising edge clocks bit into register
-  }
-
-  digitalWrite(SHIFT_REG_RCLK, HIGH);    // Latch data to output pins
-}
-
-
-void sendParameter(uint8_t paramID, uint8_t value) {
-  while (bitIndex != -1);  // Wait until previous transfer is complete
-
-  noInterrupts();
-  sendBuffer = ((uint16_t)paramID << 8) | value;
-  bitIndex = 15;
-  bool bit = (sendBuffer >> bitIndex) & 1;
-  digitalWrite(DATA_OUT_PIN, bit ? LOW : HIGH);
-  bitIndex--;
-  
-  digitalWrite(READYOUT_PIN, HIGH);  // Begin transmission
-  //delayMicroseconds(5);
-  interrupts();
-}
-
-
-// Called on each synth CLOCK fall
-void onPG800ClockFall() {
-  if (bitIndex < 0) return;  // Not currently sending
-
-  delayMicroseconds(10);
-  // DATA is negative logic, so we invert the bit
-  bool bit = (sendBuffer >> bitIndex) & 1;
-  digitalWrite(DATA_OUT_PIN, bit ? LOW : HIGH);  // inverted logic
-
-  bitIndex--;
-  if (bitIndex < 0) {
-    delayMicroseconds(5);
-    digitalWrite(READYOUT_PIN, LOW);           // End of transfer
-    delayMicroseconds(10);
-    digitalWrite(DATA_OUT_PIN, LOW);           // Idle state
-  }
-}
-
-
-void sendPG800Message(uint8_t parmIX, uint8_t value) {
-    display.fillRect(0, 0, SCREEN_WIDTH, 12, SH110X_BLACK);
-    display.setCursor(0,0);
-    display.printf("(%d %d)", parmIX, value);
-    display.fillRect(0, 12, SCREEN_WIDTH, 12, SH110X_BLACK);
-    display.setCursor(0,12);
-    display.printf("%s %02X", 
-        jx8p_param_names[paramIndexTable[parmIX]], 
-        (uint8_t) (value));
-    sendParameter((uint8_t) (paramIndexTable[parmIX]), (uint8_t) (value));
-    display.display();
-}
-
-
-void gatherControlSettings() {
-  gatherPotentiometerValues();
-
-  for (int i = 0; i < NUM_BUTTONS; i++) {
-    buttonStates[i] = !digitalRead(buttonPins[i]); // Active low
-
-    if (buttonStates[i] && !prevButtonStates[i]) {
-      // Rising edge: button just pressed
-      log("button " + String(i + 1));
-
-      uint8_t shift = (3 - i) * 2; // Maps button 0 to bits 6-7, 1 to 4-5, etc.
-      uint8_t mask = 0b11 << shift;
-      uint8_t current = (ledPattern & mask) >> shift;
-      uint8_t next = cycleLedState(current);
-
-      ledPattern = (ledPattern & ~mask) | (next << shift);
-    }
-
-    prevButtonStates[i] = buttonStates[i]; // Update for next check
-  }
-
-  bEncoderBtn = !digitalRead(ENCODER_SW_PIN);
-  updateEncoder();
-}
-
-
-void updateEncoder() {
-  long newPosition = encoderKnob.read();
-
-  if (newPosition != lastPosition) {
-    if (newPosition > lastPosition) {
-      log("CCW");
-    } else {
-      log("CW");
-    }
-
-    lastPosition = newPosition;
-  }
-}
-
-
-void drawKnobArrow(int x, int y, int deg) {         // TODO: rewrite this to use precomputed values 
-  // Center of the knob sprite
-  int cx = x + 4;
-  int cy = y + 3;
-  
-  // Convert degrees to radians
-  float rad = deg * (PI / 180.0);
-
-  // Adjust for your rotation: 0° = south, 90° = west, 180° = north, 270° = east
-  float adj_rad = rad + PI*.33; // rotate 90 degrees counterclockwise
-
-  // Length of the pointer
-  int length = 3;
-
-  // Calculate end point
-  int ex = cx + round(length * cos(adj_rad));
-  int ey = cy + round(length * sin(adj_rad));
-
-  // Draw line from center to end point
-  display.drawLine(cx, cy, ex, ey, SH110X_BLACK);
-}
-
-
-
-void drawKnob(int x, int y, int i) {
-  display.fillRect(x+2, y+1, 6, 4, SH110X_WHITE);
-  display.drawLine(x+3, y, x+6, y, SH110X_WHITE);
-  display.drawLine(x+3, y+5, x+6, y+5, SH110X_WHITE);
-  display.drawLine(x+1, y+2, x+1, y+3, SH110X_WHITE);
-  display.drawLine(x+8, y+2, x+8, y+3, SH110X_WHITE);
-
-  if(i != -1) {
-    // i ranges from 0 - 255
-    int j = (float)(360 * ((float)i/255));
-    drawKnobArrow(x,y,j);
-  }
-  else {
-    if(bEncoderBtn)
-        display.fillRect(x+2, y+1, 6, 4, SH110X_BLACK);
-  }
-}
-
-void drawButton(int x, int y, bool red, bool green) {
-  display.fillRect(x+1, y, 8, 6, SH110X_WHITE);
-  display.drawLine(x+2, y+2, x+7, y+2, SH110X_BLACK);
-  
-  if(green) 
-    display.drawLine(x+2,y+1, x+3, y+1, SH110X_BLACK);
-  if(red)
-    display.drawLine(x+6,y+1, x+7, y+1, SH110X_BLACK);
-}
-
-uint knobXformer[] = {
-  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 
- 32,33,34,35,36,37,38,39,40,41, 42, 43, 44, 45, 46, 47,
- 16,17,18,19,20,21,22,23,24,25, 26, 27, 28, 29, 30, 31,
- 48,49,50,51,52,53,54,55
-};
-
-inline uint getKnobValue(uint knobIX) {
-  knobIX = knobXformer[knobIX];              // transform this index (necessary because of wiring) 
-  uint mux = knobIX >> 4;
-  uint mux_ix = knobIX & 0x0F;
-
-  return 255-AnalogValues[mux_ix][mux];
-}
-
-void drawScreen() {
-    uint knobIX = 0;
-    uint btnCtr = 3;
-    uint knobpos;
-    display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
-    display.setCursor(10,0);                                           // position for title
-    display.printf("JMR800 TEST SCREEN");                              // title
-    display.drawRect(0, 9, SCREEN_WIDTH, 54, SH110X_WHITE);            // box around UI
-    display.drawRect(88, 15, 21, 11, SH110X_WHITE);                    // small screen rectangle
-    display.setCursor(90, 17);
-    display.printf("%03d", abs((lastPosition>>2) % 1000));
-    for(int i=7; i<78; i = i + 10) {                                   // knobs on the left side
-      for(int j=14; j<62; j = j + 8) {
-          knobIX++;
-          knobpos = getKnobValue(knobIX-1);
-          drawKnob(i,j,knobpos);
-      }
-    }
-    for(int i=87; i < 98; i = i + 10) {                               // knobs on the right side
-      for(int j=30; j < 62; j = j + 8) {
-        knobIX++;
-        knobpos = getKnobValue(knobIX-1);
-        drawKnob(i,j,knobpos);
-      }
-    }
-    drawKnob(109, 18, -1);                                              // encoder knob
-
-    for(int j=30; j < 62; j = j + 8) {                                 // buttons
-      if(btnCtr == 3)
-        drawButton(109, j, ledPattern & 0b10000000, ledPattern & 0b01000000);
-      else
-      if(btnCtr == 2)
-        drawButton(109, j, ledPattern & 0b00100000, ledPattern & 0b00010000);
-      else
-      if(btnCtr == 1)
-        drawButton(109, j, ledPattern & 0b00001000, ledPattern & 0b00000100);
-      else
-        drawButton(109, j, ledPattern & 0b00000010, ledPattern & 0b00000001);
-      btnCtr--;
-    }
-    display.display();
-}
-
 
 /* --------------------------------------------------------------
-   |                                                            |
    |  Main loop                                                 |
-   |                                                            |
    -------------------------------------------------------------- */
 void loop() {
   gatherControlSettings();
-  drawScreen();
+  drawTestScreen();
   setLEDs(ledPattern);
   delay(10);
 }
