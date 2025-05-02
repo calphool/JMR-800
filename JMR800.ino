@@ -128,6 +128,25 @@ int toggle = -1;
 // active knob for configuration screen
 long configKnobID = -1;
 
+
+// knob configuration structure
+typedef struct {
+  char name[15];
+  uint8_t cmdbyte;
+  uint typecode;
+} knobConfig;
+
+// array of knob configurations
+knobConfig knobConfigurations[56];
+
+// small text buffer
+char buffer[20];
+
+
+
+
+
+
 // Cycles through 0b00 → 0b10 → 0b01 → 0b00 (off → left → right → off)
 uint8_t cycleLedState(uint8_t current) {
   if (current == 0b00) return 0b10;
@@ -321,9 +340,9 @@ void updateEncoder() {
 
   if (newPosition != lastEncoderPosition) {
     if (newPosition > lastEncoderPosition) {
-      log("CCW " + String(lastEncoderPosition>>2));
+      //log("CCW " + String(lastEncoderPosition>>2));
     } else {
-      log("CW  " + String(lastEncoderPosition>>2));
+      //log("CW  " + String(lastEncoderPosition>>2));
     }
 
     lastEncoderPosition = newPosition;
@@ -492,20 +511,21 @@ void drawConfigKnobScreen() {
   display.setCursor(4, 11);
   display.setTextColor(SH110X_WHITE);
   display.print("Knob #" + String(configKnobID));
-  display.setCursor(4, 20);
+  display.setCursor(4, 21);
   display.setTextColor(SH110X_WHITE);
-  display.print("Name:");
-  display.setCursor(4, 29);
+  display.print("Name: " + String(knobConfigurations[configKnobID].name));
+  display.setCursor(4, 30);
   display.setTextColor(SH110X_WHITE);
-  display.print("CMD Byte:");
-  display.setCursor(4, 38);
+  sprintf(buffer, "CMD Byte: 0x%02X",  knobConfigurations[configKnobID].cmdbyte);
+  display.print(buffer);
+  display.setCursor(4, 39);
   display.setTextColor(SH110X_WHITE);
-  display.print("Type:");
-  display.drawRect(34, 38, 31, 7, SH110X_WHITE);
-  display.drawLine(58, 39, 58, 44, SH110X_WHITE);
-  display.drawLine(60, 41, 62, 41, SH110X_WHITE);
-  display.drawLine(61, 42, 61, 42, SH110X_WHITE);
-  display.drawLine(60, 40, 62, 40, SH110X_WHITE);
+  display.print("Type: " + String(knobConfigurations[configKnobID].typecode));
+  display.drawRect(34, 39, 31, 7, SH110X_WHITE);
+  display.drawLine(58, 40, 58, 44, SH110X_WHITE);
+  display.drawLine(60, 42, 62, 41, SH110X_WHITE);
+  display.drawLine(61, 43, 61, 42, SH110X_WHITE);
+  display.drawLine(60, 41, 62, 40, SH110X_WHITE);
   display.setCursor(34, 53);
   display.setTextColor(SH110X_WHITE);
   display.print("OK");
@@ -664,6 +684,13 @@ void setup() {
           AnalogValues[j][i] = 0;
           oldAnalogValues[j][i] = 0;
       }
+  }
+
+  log("clearing knob configurations...");
+  memset(knobConfigurations, 0, sizeof(knobConfigurations));
+
+  for(int i=0;i<56;i++) {
+    strcpy(knobConfigurations[i].name,"?");
   }
 
   log("Initialized.");
