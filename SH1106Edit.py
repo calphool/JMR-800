@@ -12,7 +12,6 @@ HELP_HEIGHT = 30
 CHAR_WIDTH = 6
 CHAR_HEIGHT = 8
 
-
 FONT_5X7 = {
     " ": [0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000],
     "!": [0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00000, 0b00100],
@@ -111,7 +110,6 @@ FONT_5X7 = {
     "~": [0b00000, 0b00000, 0b00000, 0b01101, 0b10010, 0b00000, 0b00000],
 }
 
-
 CANVAS_HEIGHT = SCREEN_HEIGHT * SCALE
 TOTAL_HEIGHT = CANVAS_HEIGHT + HELP_HEIGHT
 
@@ -140,6 +138,7 @@ class SH1106Editor:
         self.string_cursor_pos = None
         self.cursor_visible = True
         self.root.after(500, self.blink_cursor)
+        self.action_log = []
         self.draw()
 
     def blink_cursor(self):
@@ -162,8 +161,6 @@ class SH1106Editor:
                 for i, ch in enumerate(text):
                     self.draw_char(ch, x + i * CHAR_WIDTH, y)
             self.string_cursor_pos = None
-
-
         elif self.mode == "PIXEL":
             self.draw_pixel(x, y)
         else:
@@ -193,6 +190,8 @@ class SH1106Editor:
         key = event.keysym.upper()
         if key == "C":
             self.clear()
+        elif key == "I":
+            self.import_drawing()
         elif key == "E":
             self.export()
         elif key == "D":
@@ -212,18 +211,21 @@ class SH1106Editor:
             self.current_char = event.char.upper()
         self.draw()
 
-    def draw_pixel(self, x, y):
+    def draw_pixel(self, x, y, true_pixel=True):
         if 0 <= x < SCREEN_WIDTH and 0 <= y < SCREEN_HEIGHT:
             self.pixel_grid[y][x] = self.current_color
+            if true_pixel:
+                self.action_log.append(("PIXEL", x, y, self.current_color))
 
     def draw_char(self, ch, x, y):
         font = FONT_5X7.get(ch.upper())
         if not font:
             return
+        self.action_log.append(("CHAR", ch, x, y, self.current_color))
         for row, bits in enumerate(font):
             for col in range(5):
                 if bits & (1 << (4 - col)):
-                    self.draw_pixel(x + col, y + row)
+                    self.draw_pixel(x + col, y + row, False)
 
     def draw_line(self, start, end):
         x0, y0 = start
@@ -231,8 +233,9 @@ class SH1106Editor:
         dx, dy = abs(x1 - x0), abs(y1 - y0)
         sx, sy = (1 if x0 < x1 else -1), (1 if y0 < y1 else -1)
         err = dx - dy
+        self.action_log.append(("LINE", start, end, self.current_color))
         while True:
-            self.draw_pixel(x0, y0)
+            self.draw_pixel(x0, y0, False)
             if x0 == x1 and y0 == y1:
                 break
             e2 = 2 * err
@@ -246,27 +249,74 @@ class SH1106Editor:
     def draw_box(self, start, end):
         x0, y0 = start
         x1, y1 = end
+        self.action_log.append(("BOX", start, end, self.current_color))
         for x in range(min(x0, x1), max(x0, x1) + 1):
-            self.draw_pixel(x, y0)
-            self.draw_pixel(x, y1)
+            self.draw_pixel(x, y0, False)
+            self.draw_pixel(x, y1, False)
         for y in range(min(y0, y1), max(y0, y1) + 1):
-            self.draw_pixel(x0, y)
-            self.draw_pixel(x1, y)
+            self.draw_pixel(x0, y, False)
+            self.draw_pixel(x1, y, False)
 
     def draw_filled_box(self, start, end):
         x0, y0 = start
         x1, y1 = end
+        self.action_log.append(("FILLBOX", start, end, self.current_color))
         for y in range(min(y0, y1), max(y0, y1) + 1):
             for x in range(min(x0, x1), max(x0, x1) + 1):
-                self.draw_pixel(x, y)
-
+                self.draw_pixel(x, y, False)
 
     def clear(self):
         self.pixel_grid = [[0 for _ in range(SCREEN_WIDTH)] for _ in range(SCREEN_HEIGHT)]
         self.draw()
 
+    def import_drawing(self):
+        from tkinter.filedialog import askopenfilename
+        import re
+
+        filename = askopenfilename(
+            defaultextension=".ino",
+            filetypes=[("C++ Source Files", "*.ino"), ("All Files", "*.*")],
+            title="Import Drawing Commands"
+        )
+        if not filename:
+            return
+
+        self.clear()
+        self.action_log.clear()
+
+        cursor_x, cursor_y = 0, 0
+
+        with open(filename, "r") as f:
+            for line in f:
+                line = line.strip()
+                if m := re.match(r"display\.drawPixel\((\d+), (\d+), SH110X_(WHITE|BLACK)\);", line):
+                    x, y, c = int(m[1]), int(m[2]), 1 if m[3] == "WHITE" else 0
+                    self.current_color = c
+                    self.draw_pixel(x, y)
+                elif m := re.match(r"display\.drawLine\((\d+), (\d+), (\d+), (\d+), SH110X_(WHITE|BLACK)\);", line):
+                    s = (int(m[1]), int(m[2]))
+                    e = (int(m[3]), int(m[4]))
+                    self.current_color = 1 if m[5] == "WHITE" else 0
+                    self.draw_line(s, e)
+                elif m := re.match(r"display\.drawRect\((\d+), (\d+), (\d+), (\d+), SH110X_(WHITE|BLACK)\);", line):
+                    x, y, w, h = map(int, m.groups()[:4])
+                    self.current_color = 1 if m[5] == "WHITE" else 0
+                    self.draw_box((x, y), (x + w - 1, y + h - 1))
+                elif m := re.match(r"display\.fillRect\((\d+), (\d+), (\d+), (\d+), SH110X_(WHITE|BLACK)\);", line):
+                    x, y, w, h = map(int, m.groups()[:4])
+                    self.current_color = 1 if m[5] == "WHITE" else 0
+                    self.draw_filled_box((x, y), (x + w - 1, y + h - 1))
+                elif m := re.match(r"display\.setCursor\((\d+), (\d+)\);", line):
+                    cursor_x, cursor_y = int(m[1]), int(m[2])
+                elif m := re.match(r"display\.setTextColor\(SH110X_(WHITE|BLACK)\);", line):
+                    self.current_color = 1 if m[1] == "WHITE" else 0
+                elif m := re.match(r'display\.print\("(.+?)"\);', line):
+                    for i, ch in enumerate(m[1]):
+                        self.draw_char(ch, cursor_x + i * CHAR_WIDTH, cursor_y)
+
     def export(self):
         from tkinter.filedialog import asksaveasfilename
+        emitted_text_size = False
 
         filename = asksaveasfilename(
             defaultextension=".ino",
@@ -276,53 +326,43 @@ class SH1106Editor:
         if not filename:
             return
 
-        visited = [[False for _ in range(SCREEN_WIDTH)] for _ in range(SCREEN_HEIGHT)]
-
-        def is_pixel(x, y):
-            return (
-                0 <= x < SCREEN_WIDTH and
-                0 <= y < SCREEN_HEIGHT and
-                self.pixel_grid[y][x] == 1 and
-                not visited[y][x]
-            )
-
         with open(filename, "w") as f:
-            f.write("// Exported drawing commands\n")
-
-            # Horizontal lines
-            for y in range(SCREEN_HEIGHT):
-                x = 0
-                while x < SCREEN_WIDTH:
-                    if is_pixel(x, y):
-                        start_x = x
-                        while x < SCREEN_WIDTH and is_pixel(x, y):
-                            visited[y][x] = True
-                            x += 1
-                        length = x - start_x
-                        if length == 1:
-                            f.write(f"display.drawPixel({start_x}, {y}, SH110X_WHITE);\n")
-                        else:
-                            f.write(f"display.drawFastHLine({start_x}, {y}, {length}, SH110X_WHITE);\n")
-                    else:
-                        x += 1
-
-            # Vertical lines
-            for x in range(SCREEN_WIDTH):
-                y = 0
-                while y < SCREEN_HEIGHT:
-                    if is_pixel(x, y):
-                        start_y = y
-                        while y < SCREEN_HEIGHT and is_pixel(x, y):
-                            visited[y][x] = True
-                            y += 1
-                        length = y - start_y
-                        if length == 1:
-                            f.write(f"display.drawPixel({x}, {start_y}, SH110X_WHITE);\n")
-                        else:
-                            f.write(f"display.drawFastVLine({x}, {start_y}, {length}, SH110X_WHITE);\n")
-                    else:
-                        y += 1
-
+            f.write("// Exported drawing actions\n")
+            for action in self.action_log:
+                cmd = action[0]
+                if cmd == "PIXEL":
+                    _, x, y, color = action
+                    f.write(f"display.drawPixel({x}, {y}, {'SH110X_WHITE' if color else 'SH110X_BLACK'});\n")
+                elif cmd == "LINE":
+                    _, start, end, color = action
+                    x0, y0 = start
+                    x1, y1 = end
+                    f.write(
+                        f"display.drawLine({x0}, {y0}, {x1}, {y1}, {'SH110X_WHITE' if color else 'SH110X_BLACK'});\n")
+                elif cmd == "BOX":
+                    _, start, end, color = action
+                    x0, y0 = start
+                    x1, y1 = end
+                    width = abs(x1 - x0)
+                    height = abs(y1 - y0)
+                    f.write(
+                        f"display.drawRect({min(x0, x1)}, {min(y0, y1)}, {width + 1}, {height + 1}, {'SH110X_WHITE' if color else 'SH110X_BLACK'});\n")
+                elif cmd == "FILLBOX":
+                    _, start, end, color = action
+                    x0, y0 = start
+                    x1, y1 = end
+                    width = abs(x1 - x0)
+                    height = abs(y1 - y0)
+                    f.write(
+                        f"display.fillRect({min(x0, x1)}, {min(y0, y1)}, {width + 1}, {height + 1}, {'SH110X_WHITE' if color else 'SH110X_BLACK'});\n")
+                elif cmd == "CHAR":
+                    _, ch, x, y, color = action
+                    f.write(f"display.setCursor({x}, {y});\n")
+                    if emitted_text_size is False:
+                        f.write(f"display.setTextSize(1);\n")
+                        emitted_text_size = True
+                    f.write(f"display.setTextColor({'SH110X_WHITE' if color else 'SH110X_BLACK'});\n")
+                    f.write(f"display.print(\"{ch}\");\n")
 
     def draw(self):
         self.canvas.delete("all")
@@ -343,7 +383,7 @@ class SH1106Editor:
         )
 
         # Draw help text
-        help_text = "T: Text | S: String | L: Line | B: Box | F: Filled Box | P: Pixel | C: Clear | E: Export | D: Toggle Color | ESC: Quit"
+        help_text = "T: Text | S: String | L: Line | B: Box | F: Filled Box | P: Pixel | C: Clear | E: Export | I: Import | D: Toggle Color | ESC: Quit"
         self.canvas.create_text(
             4, help_y,
             text=help_text, fill="#888888", anchor='nw', font=("Arial", 8)
@@ -362,7 +402,7 @@ class SH1106Editor:
         if self.start_pos and self.preview_end:
             x0, y0 = self.start_pos
             x1, y1 = self.preview_end
-            color="#00ff00"
+            color = "#00ff00"
             if self.mode == "LINE":
                 self.canvas.create_line(x0 * SCALE, y0 * SCALE, x1 * SCALE, y1 * SCALE, fill=color)
             elif self.mode in ("BOX", "FILLBOX"):
@@ -374,9 +414,9 @@ class SH1106Editor:
 
         # Draw grid
         for x in range(SCREEN_WIDTH):
-            self.canvas.create_line(x*SCALE, 0, x*SCALE, SCREEN_HEIGHT*SCALE, fill=GRID_COLOR)
-        for y in range(SCREEN_HEIGHT+1):
-            self.canvas.create_line(0, y*SCALE, SCREEN_WIDTH*SCALE, y*SCALE, fill=GRID_COLOR)
+            self.canvas.create_line(x * SCALE, 0, x * SCALE, SCREEN_HEIGHT * SCALE, fill=GRID_COLOR)
+        for y in range(SCREEN_HEIGHT + 1):
+            self.canvas.create_line(0, y * SCALE, SCREEN_WIDTH * SCALE, y * SCALE, fill=GRID_COLOR)
 
         if self.mode == "STRING" and self.string_cursor_pos and self.cursor_visible:
             cx, cy = self.string_cursor_pos

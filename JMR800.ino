@@ -66,6 +66,12 @@ const uint8_t buttonPins[NUM_BUTTONS] = {
   PUSH_BTN_SW4_PIN
 };
 
+#define MODE_TEST 0
+#define MODE_CONFIG 1
+#define MODE_RUNNING 2
+
+uint8_t systemMode;
+
 // button state variables
 uint8_t buttonStates[NUM_BUTTONS] = {0}; // Current button state (0 or 1)
 uint8_t prevButtonStates[NUM_BUTTONS] = {0}; // Previous button state
@@ -432,11 +438,29 @@ void drawTestScreen() {
     display.display();
 }
 
+
+void drawConfigScreen() {
+  display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
+  display.setCursor(0,0);
+  display.print("Config screen here");
+  display.display();
+}
+
+void drawRunningScreen() {
+  display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
+  display.setCursor(0,0);
+  display.print("Run screen here");
+  display.display();
+}
+
 /* --------------------------------------------------------------
    |  Initialization                                            |
    -------------------------------------------------------------- */
 void setup() {
   Serial.begin(115200);
+
+  systemMode = MODE_TEST;
+
   pinMode(PUSH_BTN_SW4_PIN, INPUT_PULLUP);
   pinMode(PUSH_BTN_SW3_PIN, INPUT_PULLUP);
   pinMode(PUSH_BTN_SW2_PIN, INPUT_PULLUP);
@@ -502,8 +526,36 @@ void setup() {
    -------------------------------------------------------------- */
 void loop() {
   gatherControlSettings();
-  drawTestScreen();
-  setLEDs(ledPattern);
-  delay(10);
+
+  if(buttonStates[0] && buttonStates[1]) {
+    if(systemMode == MODE_TEST) {
+      systemMode = MODE_CONFIG;
+      delay(500);
+    }
+    else if (systemMode == MODE_CONFIG) {
+      systemMode = MODE_RUNNING;
+      delay(500);
+    }
+    else if (systemMode == MODE_RUNNING) {
+      systemMode = MODE_TEST;
+      delay(500);
+    }
+  }
+
+  if(systemMode == MODE_TEST) {
+    drawTestScreen();
+    setLEDs(ledPattern);
+    delay(10);
+  }
+  else if (systemMode == MODE_CONFIG) {
+    drawConfigScreen();
+    setLEDs(0b00000000);
+    delay(10);
+  }
+  else { // RUNNING MODE
+    drawRunningScreen();
+    setLEDs(0b00000000);
+    delay(10);
+  }
 }
 
