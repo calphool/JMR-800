@@ -494,6 +494,8 @@ void drawTestScreen() {
 
 
 void drawConfigKnobScreen() {
+  long highlight = getActiveKnob() % 5;
+  toggle = -toggle;
   display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
   display.drawRect(87, 27, 1, 1, SH110X_WHITE);
   display.drawPixel(87, 27, SH110X_BLACK);
@@ -507,28 +509,66 @@ void drawConfigKnobScreen() {
   display.drawLine(127, 8, 127, 1, SH110X_BLACK);
   display.setTextColor(SH110X_WHITE);
   display.setCursor(4, 1);
-  display.print("JMR800 Config Screen");
+  display.print("Config - Update");
   display.setCursor(4, 11);
   display.setTextColor(SH110X_WHITE);
   display.print("Knob #" + String(configKnobID));
+
+  if(highlight == 0) {
+    if(toggle > 0)
+      display.drawRect(38,19,84,11, SH110X_WHITE);
+    else
+      display.drawRect(38,19,84,11, SH110X_BLACK);
+  }
   display.setCursor(4, 21);
   display.setTextColor(SH110X_WHITE);
   display.print("Name: " + String(knobConfigurations[configKnobID].name));
+  
+  if(highlight == 1) {
+    if(toggle > 0)
+      display.drawRect(61,28,29,11, SH110X_WHITE);
+    else
+      display.drawRect(61,28,29,11, SH110X_BLACK);
+  }
   display.setCursor(4, 30);
   display.setTextColor(SH110X_WHITE);
   sprintf(buffer, "CMD Byte: 0x%02X",  knobConfigurations[configKnobID].cmdbyte);
   display.print(buffer);
+
+  if(highlight == 2) {
+    if(toggle > 0)
+      display.drawRect(32,37,36,11, SH110X_WHITE);
+    else
+      display.drawRect(32,37,36,11, SH110X_BLACK);
+  }
   display.setCursor(4, 39);
   display.setTextColor(SH110X_WHITE);
   display.print("Type: " + String(knobConfigurations[configKnobID].typecode));
   display.drawRect(34, 39, 31, 7, SH110X_WHITE);
+  
   display.drawLine(58, 40, 58, 44, SH110X_WHITE);
   display.drawLine(60, 42, 62, 41, SH110X_WHITE);
   display.drawLine(61, 43, 61, 42, SH110X_WHITE);
   display.drawLine(60, 41, 62, 40, SH110X_WHITE);
+
+  if(highlight == 3) {
+    if(toggle > 0)
+      display.drawRect(30,51,19,11, SH110X_WHITE);
+    else
+      display.drawRect(30,51,19,11, SH110X_BLACK);
+  }
+
   display.setCursor(34, 53);
   display.setTextColor(SH110X_WHITE);
   display.print("OK");
+
+  if(highlight == 4) {
+    if(toggle > 0)
+      display.drawRect(58,51,44,11, SH110X_WHITE);
+    else
+      display.drawRect(58,51,44,11, SH110X_BLACK);
+  }
+
   display.setCursor(62, 53);
   display.setTextColor(SH110X_WHITE);
   display.print("Cancel");
@@ -565,7 +605,7 @@ void drawConfigSelectionScreen() {
 
     display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
     display.setCursor(0,0);                                           // position for title
-    display.printf("JMR800 Config- Pick");                              // title
+    display.printf("Config - Pick Knob");                              // title
     display.drawRect(0, 9, SCREEN_WIDTH, 54, SH110X_WHITE);            // box around UI
     display.drawRect(88, 15, 21, 11, SH110X_WHITE);                    // small screen rectangle
     for(int i=7; i<78; i = i + 10) {                                   // knobs on the left side
