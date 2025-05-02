@@ -70,7 +70,11 @@ const uint8_t buttonPins[NUM_BUTTONS] = {
 #define MODE_CONFIG 1
 #define MODE_RUNNING 2
 
+#define SUBMODE_1 0
+#define SUBMODE_2 1
+
 uint8_t systemMode;
+uint8_t systemSubMode;
 
 // button state variables
 uint8_t buttonStates[NUM_BUTTONS] = {0}; // Current button state (0 or 1)
@@ -112,6 +116,7 @@ static unsigned long lastPotScanTime = 0;
 
 // button statuses
 static bool bEncoderBtn = false;
+static bool bPrevEncoderBtn = false;
 
 // used for bit banging PG800 serial protocol
 volatile int bitIndex = -1;
@@ -292,6 +297,7 @@ void gatherControlSettings() {
     prevButtonStates[i] = buttonStates[i]; // Update for next check
   }
 
+  bPrevEncoderBtn = bEncoderBtn;
   bEncoderBtn = !digitalRead(ENCODER_SW_PIN);
   updateEncoder();
 }
@@ -439,11 +445,119 @@ void drawTestScreen() {
 }
 
 
-void drawConfigScreen() {
+void drawConfigKnobScreen() {
   display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
-  display.setCursor(0,0);
-  display.print("Config screen here");
+  display.drawRect(87, 27, 1, 1, SH110X_WHITE);
+  display.drawPixel(87, 27, SH110X_BLACK);
+  display.drawRect(0, 8, 128, 56, SH110X_BLACK);
+  display.drawRect(0, 0, 128, 64, SH110X_WHITE);
+  display.drawLine(0, 0, 127, 0, SH110X_BLACK);
+  display.drawLine(0, 0, 0, 8, SH110X_BLACK);
+  display.drawLine(1, 9, 127, 10, SH110X_WHITE);
+  display.drawLine(65, 9, 127, 9, SH110X_WHITE);
+  display.drawLine(65, 10, 126, 10, SH110X_BLACK);
+  display.drawLine(127, 8, 127, 1, SH110X_BLACK);
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(4, 1);
+  display.print("JMR800 Config Screen");
+  display.setCursor(4, 11);
+  display.setTextColor(SH110X_WHITE);
+  display.print("Knob #1");
+  display.setCursor(4, 20);
+  display.setTextColor(SH110X_WHITE);
+  display.print("Name:");
+  display.setCursor(4, 29);
+  display.setTextColor(SH110X_WHITE);
+  display.print("CMD Byte:");
+  display.setCursor(4, 38);
+  display.setTextColor(SH110X_WHITE);
+  display.print("Type:");
+  display.drawRect(34, 38, 31, 7, SH110X_WHITE);
+  display.drawLine(58, 39, 58, 44, SH110X_WHITE);
+  display.drawLine(60, 41, 62, 41, SH110X_WHITE);
+  display.drawLine(61, 42, 61, 42, SH110X_WHITE);
+  display.drawLine(60, 40, 62, 40, SH110X_WHITE);
+  display.setCursor(34, 53);
+  display.setTextColor(SH110X_WHITE);
+  display.print("OK");
+  display.setCursor(62, 53);
+  display.setTextColor(SH110X_WHITE);
+  display.print("Cancel");
+  display.drawRect(32, 51, 15, 10, SH110X_WHITE);
+  display.drawPixel(32, 51, SH110X_WHITE);
+  display.drawPixel(32, 51, SH110X_BLACK);
+  display.drawPixel(46, 51, SH110X_BLACK);
+  display.drawPixel(45, 60, SH110X_BLACK);
+  display.drawPixel(44, 60, SH110X_BLACK);
+  display.drawPixel(43, 60, SH110X_BLACK);
+  display.drawPixel(42, 60, SH110X_BLACK);
+  display.drawPixel(41, 60, SH110X_BLACK);
+  display.drawPixel(40, 60, SH110X_BLACK);
+  display.drawPixel(38, 60, SH110X_BLACK);
+  display.drawPixel(39, 60, SH110X_BLACK);
+  display.drawPixel(37, 60, SH110X_BLACK);
+  display.drawPixel(36, 60, SH110X_BLACK);
+  display.drawPixel(35, 60, SH110X_BLACK);
+  display.drawPixel(34, 60, SH110X_BLACK);
+  display.drawPixel(33, 60, SH110X_BLACK);
+  display.drawLine(33, 61, 45, 61, SH110X_WHITE);
+  display.drawRect(60, 51, 39, 11, SH110X_WHITE);
+  display.drawPixel(60, 51, SH110X_BLACK);
+  display.drawPixel(60, 61, SH110X_BLACK);
+  display.drawPixel(98, 61, SH110X_BLACK);
+  display.drawPixel(98, 51, SH110X_BLACK);
+
   display.display();
+}
+
+void drawConfigSelectionScreen() {
+    uint btnCtr = 3;
+
+    display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
+    display.setCursor(0,0);                                           // position for title
+    display.printf("JMR800 Config- Pick");                              // title
+    display.drawRect(0, 9, SCREEN_WIDTH, 54, SH110X_WHITE);            // box around UI
+    display.drawRect(88, 15, 21, 11, SH110X_WHITE);                    // small screen rectangle
+    for(int i=7; i<78; i = i + 10) {                                   // knobs on the left side
+      for(int j=14; j<62; j = j + 8) {
+          drawKnob(i,j,0);
+      }
+    }
+    for(int i=87; i < 98; i = i + 10) {                               // knobs on the right side
+      for(int j=30; j < 62; j = j + 8) {
+        drawKnob(i,j,0);
+      }
+    }
+    drawKnob(109, 18, -1);                                              // encoder knob
+
+    for(int j=30; j < 62; j = j + 8) {                                 // buttons
+      if(btnCtr == 3)
+        drawButton(109, j, ledPattern & 0b10000000, ledPattern & 0b01000000, buttonStates[0]);
+      else
+      if(btnCtr == 2)
+        drawButton(109, j, ledPattern & 0b00100000, ledPattern & 0b00010000, buttonStates[1]);
+      else
+      if(btnCtr == 1)
+        drawButton(109, j, ledPattern & 0b00001000, ledPattern & 0b00000100, buttonStates[2]);
+      else
+        drawButton(109, j, ledPattern & 0b00000010, ledPattern & 0b00000001, buttonStates[3]);
+      btnCtr--;
+    }
+    display.display();
+}
+
+void drawConfigScreen() {
+  if(millis() - lastdrawTestScreen < 33) 
+    return;
+
+  lastdrawTestScreen = millis();
+
+  if(systemSubMode == SUBMODE_2) {
+    drawConfigKnobScreen();
+  }
+  else {
+    drawConfigSelectionScreen();
+  }
 }
 
 void drawRunningScreen() {
@@ -460,6 +574,7 @@ void setup() {
   Serial.begin(115200);
 
   systemMode = MODE_TEST;
+  systemSubMode = SUBMODE_1;
 
   pinMode(PUSH_BTN_SW4_PIN, INPUT_PULLUP);
   pinMode(PUSH_BTN_SW3_PIN, INPUT_PULLUP);
@@ -527,9 +642,18 @@ void setup() {
 void loop() {
   gatherControlSettings();
 
+  if(systemMode == MODE_CONFIG) {
+    if(systemSubMode == SUBMODE_1) {
+      if(bPrevEncoderBtn != bEncoderBtn) {
+        systemSubMode = SUBMODE_2;
+      }
+    }
+  }
+
   if(buttonStates[0] && buttonStates[1]) {
     if(systemMode == MODE_TEST) {
       systemMode = MODE_CONFIG;
+      systemSubMode = SUBMODE_1;
       delay(500);
     }
     else if (systemMode == MODE_CONFIG) {
