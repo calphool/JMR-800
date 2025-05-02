@@ -122,7 +122,11 @@ static bool bPrevEncoderBtn = false;
 volatile int bitIndex = -1;
 volatile uint16_t sendBuffer = 0;
 
+// toggle used for flickering in UI
+int toggle = -1;
 
+// active knob for configuration screen
+long configKnobID = -1;
 
 // Cycles through 0b00 → 0b10 → 0b01 → 0b00 (off → left → right → off)
 uint8_t cycleLedState(uint8_t current) {
@@ -310,6 +314,11 @@ void gatherControlSettings() {
 void updateEncoder() {
   long newPosition = encoderKnob.read();
 
+  if(newPosition < 0) {
+    encoderKnob.write(0);
+    newPosition = 0;
+  }
+
   if (newPosition != lastEncoderPosition) {
     if (newPosition > lastEncoderPosition) {
       log("CCW " + String(lastEncoderPosition>>2));
@@ -344,14 +353,34 @@ void drawKnobArrow(int x, int y, int deg) {         // TODO: rewrite this to use
   display.drawLine(cx, cy, ex, ey, SH110X_BLACK);
 }
 
+long getActiveKnob() {
+    long i = (lastEncoderPosition>>2) % 56; 
+    if(i < 0)
+      i = 0;
+    if(i > 56)
+      i = 56;
+    
+    return i;
+}
 
-
-void drawKnob(int x, int y, int i) {
+void drawKnob(int knobid, int x, int y, int i) {
   display.fillRect(x+2, y+1, 6, 4, SH110X_WHITE);
   display.drawLine(x+3, y, x+6, y, SH110X_WHITE);
   display.drawLine(x+3, y+5, x+6, y+5, SH110X_WHITE);
   display.drawLine(x+1, y+2, x+1, y+3, SH110X_WHITE);
   display.drawLine(x+8, y+2, x+8, y+3, SH110X_WHITE);
+
+  if(systemMode == MODE_CONFIG) {
+    if(getActiveKnob() == knobid) {
+      toggle = -toggle;
+      if(toggle > 0) {
+          display.fillRect(x+2, y+1, 6, 4, SH110X_BLACK);
+      }
+      else {
+          display.fillRect(x+2, y+1, 6, 4, SH110X_WHITE);
+      }
+    }
+  }
 
   if(i != -1) {
     // i ranges from 0 - 255
@@ -416,17 +445,17 @@ void drawTestScreen() {
       for(int j=14; j<62; j = j + 8) {
           knobIX++;
           knobpos = getKnobValue(knobIX-1);
-          drawKnob(i,j,knobpos);
+          drawKnob(knobIX-1,i,j,knobpos);
       }
     }
     for(int i=87; i < 98; i = i + 10) {                               // knobs on the right side
       for(int j=30; j < 62; j = j + 8) {
         knobIX++;
         knobpos = getKnobValue(knobIX-1);
-        drawKnob(i,j,knobpos);
+        drawKnob(knobIX-1,i,j,knobpos);
       }
     }
-    drawKnob(109, 18, -1);                                              // encoder knob
+    drawKnob(-1, 109, 18, -1);                                              // encoder knob
 
     for(int j=30; j < 62; j = j + 8) {                                 // buttons
       if(btnCtr == 3)
@@ -462,7 +491,7 @@ void drawConfigKnobScreen() {
   display.print("JMR800 Config Screen");
   display.setCursor(4, 11);
   display.setTextColor(SH110X_WHITE);
-  display.print("Knob #1");
+  display.print("Knob #" + String(configKnobID));
   display.setCursor(4, 20);
   display.setTextColor(SH110X_WHITE);
   display.print("Name:");
@@ -512,6 +541,7 @@ void drawConfigKnobScreen() {
 
 void drawConfigSelectionScreen() {
     uint btnCtr = 3;
+    uint8_t iKnobCtr = 0;
 
     display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
     display.setCursor(0,0);                                           // position for title
@@ -520,15 +550,19 @@ void drawConfigSelectionScreen() {
     display.drawRect(88, 15, 21, 11, SH110X_WHITE);                    // small screen rectangle
     for(int i=7; i<78; i = i + 10) {                                   // knobs on the left side
       for(int j=14; j<62; j = j + 8) {
-          drawKnob(i,j,0);
+          drawKnob(iKnobCtr, i,j,0);
+          iKnobCtr++;
       }
     }
     for(int i=87; i < 98; i = i + 10) {                               // knobs on the right side
       for(int j=30; j < 62; j = j + 8) {
-        drawKnob(i,j,0);
+        drawKnob(iKnobCtr, i,j,0);
+        iKnobCtr++;
       }
     }
-    drawKnob(109, 18, -1);                                              // encoder knob
+    drawKnob(-1,109, 18, -1);                                              // encoder knob
+    iKnobCtr++;
+
 
     for(int j=30; j < 62; j = j + 8) {                                 // buttons
       if(btnCtr == 3)
@@ -636,16 +670,14 @@ void setup() {
 }
 
 
-/* --------------------------------------------------------------
-   |  Main loop                                                 |
-   -------------------------------------------------------------- */
-void loop() {
+void handleControlStatus() {
   gatherControlSettings();
 
   if(systemMode == MODE_CONFIG) {
     if(systemSubMode == SUBMODE_1) {
       if(bPrevEncoderBtn != bEncoderBtn) {
         systemSubMode = SUBMODE_2;
+        configKnobID = getActiveKnob();
       }
     }
   }
@@ -665,7 +697,10 @@ void loop() {
       delay(500);
     }
   }
+}
 
+
+void handleDisplays() {
   if(systemMode == MODE_TEST) {
     drawTestScreen();
     setLEDs(ledPattern);
@@ -681,5 +716,13 @@ void loop() {
     setLEDs(0b00000000);
     delay(10);
   }
+}
+
+/* --------------------------------------------------------------
+   |  Main loop                                                 |
+   -------------------------------------------------------------- */
+void loop() {
+  handleControlStatus();
+  handleDisplays();
 }
 
