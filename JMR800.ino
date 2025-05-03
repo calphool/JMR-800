@@ -67,6 +67,7 @@ const uint8_t buttonPins[NUM_BUTTONS] = {
   PUSH_BTN_SW4_PIN
 };
 
+// system modes
 #define MODE_TEST 0
 #define MODE_CONFIG 1
 #define MODE_RUNNING 2
@@ -138,6 +139,9 @@ volatile uint16_t sendBuffer = 0;
 // toggle used for flickering in UI
 int toggle = -1;
 
+// cursor position for text editing
+uint textCursorPos = 0;
+
 // active knob for configuration screen
 long configKnobID = -1;
 
@@ -158,12 +162,8 @@ typedef struct {
 knobConfig knobConfigurations[56];
 knobConfig lastKnobConfig;
 
-// small text buffer
-char buffer[20];
-
-
-
-
+// small text buffer used in various places, mostly for text buffers
+char buffer[25];
 
 
 // Cycles through 0b00 → 0b10 → 0b01 → 0b00 (off → left → right → off)
@@ -174,10 +174,8 @@ uint8_t cycleLedState(uint8_t current) {
 }
 
 /* --------------------------------------------------------------
-   |                                                            |
    |  Set the muxes address value                               |
    |      Invoked by: gatherPotentiometerValues()               |
-   |                                                            |
    -------------------------------------------------------------- */
 void setAddressPins(uint val) {
   if(val & 0x01) digitalWrite(S0_PIN, HIGH); else digitalWrite(S0_PIN, LOW);
@@ -218,22 +216,18 @@ void gatherPotentiometerValues() {
 
 
 
-/* 
-   --------------------------------------------------------------
+/* --------------------------------------------------------------
    |  Logging routine                                           |
-   -------------------------------------------------------------- 
-*/
+   -------------------------------------------------------------- */
 void log(const String& s) {
   Serial.println(s);
   Serial.flush();
 }
 
 
-/* 
-   --------------------------------------------------------------
+/* --------------------------------------------------------------
    |  Shift register routine for LEDs                           |
-   -------------------------------------------------------------- 
-*/
+   -------------------------------------------------------------- */
 void setLEDs(uint8_t data) {
   digitalWrite(SHIFT_REG_RCLK, LOW);  // Start by disabling latch
 
@@ -250,11 +244,9 @@ void setLEDs(uint8_t data) {
   digitalWrite(SHIFT_REG_RCLK, HIGH);    // Latch data to output pins
 }
 
-/* 
-   --------------------------------------------------------------
+/* --------------------------------------------------------------
    |  sendParameter -- code that sends data to synthesizer      |
-   -------------------------------------------------------------- 
-*/
+   -------------------------------------------------------------- */
 void sendParameter(uint8_t paramID, uint8_t value) {
   while (bitIndex != -1);  // Wait until previous transfer is complete
 
@@ -271,12 +263,10 @@ void sendParameter(uint8_t paramID, uint8_t value) {
 }
 
 
-/* 
-   --------------------------------------------------------------
+/* --------------------------------------------------------------
    |  onPG800ClockFall -- loop that synchronizes the controller |
    |  with the synthesizer                                      |
-   -------------------------------------------------------------- 
-*/
+   -------------------------------------------------------------- */
 void onPG800ClockFall() {
   if (bitIndex < 0) return;  // Not currently sending
 
@@ -294,12 +284,10 @@ void onPG800ClockFall() {
   }
 }
 
-/* 
-   --------------------------------------------------------------
+/* --------------------------------------------------------------
    |  sendPG800Message -- Routine that sends message and shows  |
    |  what the parameter is on the screen                       |
-   -------------------------------------------------------------- 
-*/
+   -------------------------------------------------------------- */
 void sendPG800Message(uint8_t parmIX, uint8_t value) {
     display.fillRect(0, 0, SCREEN_WIDTH, 12, SH110X_BLACK);
     display.setCursor(0,0);
@@ -313,12 +301,10 @@ void sendPG800Message(uint8_t parmIX, uint8_t value) {
     display.display();
 }
 
-/* 
-   ---------------------------------------------------------------
+/* ---------------------------------------------------------------
    |  gatherControlSettings -- handles button depresses and sets |
    |  LED status                                                 |
-   --------------------------------------------------------------- 
-*/
+   --------------------------------------------------------------- */
 void gatherControlSettings() {
   gatherPotentiometerValues();
 
@@ -345,11 +331,9 @@ void gatherControlSettings() {
   updateEncoder();
 }
 
-/* 
-   ---------------------------------------------------------------
+/* ---------------------------------------------------------------
    |  updateEncoder -- encoder handler                           |
-   --------------------------------------------------------------- 
-*/
+   --------------------------------------------------------------- */
 void updateEncoder() {
   long newPosition = encoderKnob.read();
 
@@ -370,27 +354,27 @@ void updateEncoder() {
 }
 
 
-void drawKnobArrow(int x, int y, int deg) {         // TODO: rewrite this to use precomputed values 
-  // Center of the knob sprite
+
+/* ---------------------------------------------------------------
+   |  drawKnobArrow - draws the arrow on the knob                |
+   --------------------------------------------------------------- */
+void drawKnobArrow(int x, int y, int deg) {
   int cx = x + 4;
   int cy = y + 3;
-  
-  // Convert degrees to radians
-  float rad = deg * (PI / 180.0);
 
-  // Adjust for your rotation: 0° = south, 90° = west, 180° = north, 270° = east
-  float adj_rad = rad + PI*.33; // rotate 90 degrees counterclockwise
+  deg = deg - 45;
+  if(deg < 0)
+    deg += 360;
 
-  // Length of the pointer
-  int length = 3;
+  // Apply 120-degree rotation offset (like original float math)
+  int index = deg % 360;
 
-  // Calculate end point
-  int ex = cx + round(length * cos(adj_rad));
-  int ey = cy + round(length * sin(adj_rad));
+  int ex = cx + arrow_dx[index];
+  int ey = cy + arrow_dy[index];
 
-  // Draw line from center to end point
   display.drawLine(cx, cy, ex, ey, SH110X_BLACK);
 }
+
 
 long getActiveKnob(long divisor) {
     long i = (lastEncoderPosition>>2) % divisor; 
@@ -623,32 +607,40 @@ void drawConfigKnobScreen() {
     display.drawPixel(15,60,SH110X_BLACK);
     display.drawPixel(115,15,SH110X_BLACK);
     display.drawPixel(115,60,SH110X_BLACK);
-    display.setCursor(50,30);
+    display.setCursor(55,33);
     sprintf(buffer, "0x%02X",  knobConfigurations[configKnobID].cmdbyte);
     display.print(buffer);
   }
   else
   if(systemSubMode == SUBMODE_2_TYPE) {
-    display.display();
-    display.fillRect (15,15,100,45,SH110X_BLACK);
-    display.drawRect (15,15,100,45,SH110X_WHITE);
-    display.drawPixel(15,15,SH110X_BLACK);
-    display.drawPixel(15,60,SH110X_BLACK);
-    display.drawPixel(115,15,SH110X_BLACK);
-    display.drawPixel(115,60,SH110X_BLACK);
+    display.fillRect (7,12,112,48,SH110X_BLACK);
+    display.drawRect (7,12,112,48,SH110X_WHITE);
     display.setCursor(21,21);
     display.print("Type handler...");
   }
   else
   if(systemSubMode == SUBMODE_2_NAME) {
-    display.fillRect (15,15,100,45,SH110X_BLACK);
-    display.drawRect (15,15,100,45,SH110X_WHITE);
-    display.drawPixel(15,15,SH110X_BLACK);
-    display.drawPixel(15,60,SH110X_BLACK);
-    display.drawPixel(115,15,SH110X_BLACK);
-    display.drawPixel(115,60,SH110X_BLACK);
+    display.fillRect (7,12,114,48,SH110X_BLACK);
+    display.drawRect (7,12,114,48,SH110X_WHITE);
+    display.setCursor(8,50);
+    display.print(" B1=Left  B2=Right");
     display.setCursor(21,21);
-    display.print("Name handler...");
+    uint slen = strlen(knobConfigurations[configKnobID].name);
+    
+    for(uint i=0; i < 15; i++) {
+      display.setCursor(13 + i*7, 21);
+      if(i < slen) {
+        display.write(knobConfigurations[configKnobID].name[i]);
+      }
+      if(i == textCursorPos) {
+        if(toggle > 0)
+          display.drawLine(13 + i*7, 30, 17 + i*7, 30, SH110X_WHITE);
+        else
+          display.drawLine(13 + i*7, 30, 17 + i*7, 30, SH110X_BLACK);
+      }
+      else 
+          display.drawLine(13 + i*7, 30, 17 + i*7, 30, SH110X_WHITE);
+    }
   }
 
   display.display();
@@ -718,6 +710,8 @@ void drawRunningScreen() {
 
 void saveKnobs() {
   for (int i = 0; i < 56; i++) {
+    while(strlen(knobConfigurations[i].name) < 14)
+      strcat(knobConfigurations[i].name," ");
     int addr = i * sizeof(knobConfig);
     EEPROM.put(addr, knobConfigurations[i]);
   }
@@ -727,6 +721,8 @@ void loadKnobs() {
   for (int i = 0; i < 56; i++) {
     int addr = i * sizeof(knobConfig);
     EEPROM.get(addr, knobConfigurations[i]);
+    while(strlen(knobConfigurations[i].name) < 14)
+      strcat(knobConfigurations[i].name," ");
   }
 }
 
@@ -798,6 +794,7 @@ void setup() {
   }
 
 /*
+  // code to initialize the EEProm configuration if it hasn't already been set -- don't run this unless you're on a new Teensy, and only do it once
   strcpy(knobConfigurations[0].name, "DCO1 Range"); knobConfigurations[0].cmdbyte = 0x80;
   strcpy(knobConfigurations[1].name, "DCO1 Waveform"); knobConfigurations[1].cmdbyte = 0x81;
   strcpy(knobConfigurations[2].name, "DCO1 Tune"); knobConfigurations[2].cmdbyte = 0x82;
@@ -862,88 +859,99 @@ void setup() {
 
 
 void handleControlStatus() {
-  gatherControlSettings();
-
-  if(systemMode == MODE_CONFIG) { 
-    if(systemSubMode == SUBMODE_1) {
-      if(!bPrevEncoderBtn && bEncoderBtn) {
-        bPrevEncoderBtn = bEncoderBtn;
-        systemSubMode = SUBMODE_2;
-        configKnobID = getActiveKnob(56);
-        memcpy(&lastKnobConfig, &knobConfigurations[configKnobID], sizeof(lastKnobConfig));
+  gatherControlSettings(); // sweep all the controls, store their state in a buffer
+  
+  if(systemMode == MODE_CONFIG) {  // if we're in Config mode
+    if(systemSubMode == SUBMODE_1) {  // and we're in the knob selection screen
+      if(!bPrevEncoderBtn && bEncoderBtn) {  // and the user clicked on encoder button
+        bPrevEncoderBtn = bEncoderBtn;  // set the encoder previous state to the current state so we don't loop
+        systemSubMode = SUBMODE_2;     // set the sub mode to the knob configuration screen
+        configKnobID = getActiveKnob(56);   // this is the knob they clicked on
+        memcpy(&lastKnobConfig, &knobConfigurations[configKnobID], sizeof(lastKnobConfig)); // make a backup of this knob's settings in case they click cancel
         return;
       }
     }
   }
 
-  if(systemMode == MODE_CONFIG) {
-    if(systemSubMode == SUBMODE_2_CMD) {
-      if(!bPrevEncoderBtn && bEncoderBtn) {
-        systemSubMode = SUBMODE_2;
-        bPrevEncoderBtn = bEncoderBtn;
+  if(systemMode == MODE_CONFIG) {  // if we're in Config mode
+    if(systemSubMode == SUBMODE_2_CMD) {  // and we were in the knob configuration screen, but now are adjusting the CMD byte
+      if(!bPrevEncoderBtn && bEncoderBtn) {  // and the user clicked the encoder button
+        systemSubMode = SUBMODE_2;  // return back to the knob configuration screen
+        bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to the current state so we don't loop
         return;
       }
     }
   }
 
-  if(systemMode == MODE_CONFIG) { 
-    if(systemSubMode == SUBMODE_2) {
-      if(!bPrevEncoderBtn && bEncoderBtn) {
-        if(getActiveKnob(5)  == KNOB_CONFIG_CANCEL_HIGHLIGHTED) { // we're on the cancel icon
-            memcpy(&knobConfigurations[configKnobID], &lastKnobConfig, sizeof(lastKnobConfig)); // make sure we didn't change the knob configuration record
-            systemSubMode = SUBMODE_1;
-            bPrevEncoderBtn = bEncoderBtn;
+  if(systemMode == MODE_CONFIG) {   // if we're in Config mode
+    if(systemSubMode == SUBMODE_2) {   // and we're in the knob configuration screen
+      if(!bPrevEncoderBtn && bEncoderBtn) {  // and the user clicked the encoder knob
+        if(getActiveKnob(5)  == KNOB_CONFIG_CANCEL_HIGHLIGHTED) { // and they had the cancel icon highlighted
+            memcpy(&knobConfigurations[configKnobID], &lastKnobConfig, sizeof(lastKnobConfig)); // restore its knob's configuration to the save value (cancel)
+            systemSubMode = SUBMODE_1; // return back to the knob selection screen
+            bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to the current state so we don't loop
             return;
         }
         else
-        if(getActiveKnob(5) == KNOB_CONFIG_OKAY_HIGHLIGHTED) {
-            systemSubMode = SUBMODE_1;
-            bPrevEncoderBtn = bEncoderBtn;
-            saveKnobs();
+        if(getActiveKnob(5) == KNOB_CONFIG_OKAY_HIGHLIGHTED) {   // the had the OK button highlighted
+            systemSubMode = SUBMODE_1; // return to the knob selection screen
+            bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to the current state so we don't loop
+            saveKnobs(); // write the knob buffer back to EEProm (probably should update this so it only writes what changed)
             return;
         }
         else
-        if(getActiveKnob(5) ==  KNOB_CONFIG_CMD_HIGHLIGHTED) {
-          systemSubMode = SUBMODE_2_CMD;
-          bPrevEncoderBtn = bEncoderBtn;
+        if(getActiveKnob(5) ==  KNOB_CONFIG_CMD_HIGHLIGHTED) {   // had the CMD Byte spinner highlighted
+          systemSubMode = SUBMODE_2_CMD; // go into Knob config CMD Byte update modal window
+          bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to the current state so we don't loop
           return;
         }
         else
-        if(getActiveKnob(5) == KNOB_CONFIG_NAME_HIGHLIGHTED) {
-          systemSubMode = SUBMODE_2_NAME;
-          bPrevEncoderBtn = bEncoderBtn;
+        if(getActiveKnob(5) == KNOB_CONFIG_NAME_HIGHLIGHTED) { // had the NAME box highlighted
+          textCursorPos = 0;
+          systemSubMode = SUBMODE_2_NAME; // go into the knob config NAME update modal window
+          bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to current state so we don't loop
           return;
         }
         else
-        if(getActiveKnob(5) == KNOB_CONFIG_TYPECMD_HIGHLIGHTED) {
-          systemSubMode = SUBMODE_2_TYPE;
-          bPrevEncoderBtn = bEncoderBtn;
+        if(getActiveKnob(5) == KNOB_CONFIG_TYPECMD_HIGHLIGHTED) { // had the Type spinner highlighted
+          systemSubMode = SUBMODE_2_TYPE; // go into the knob config type update modal window
+          bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to current state so we don't loop
           return;
         }
       }
     }
   }
 
-  if(systemMode == MODE_CONFIG) { // this kind of works, but it bounces back into the SUBMODE_2 screen on the next loop
-    if(systemSubMode == SUBMODE_2_CMD) {
-      knobConfigurations[configKnobID].cmdbyte = getActiveKnob(256);
+  if(systemMode == MODE_CONFIG) { // if we're inside Config mode
+    if(systemSubMode == SUBMODE_2_CMD) { // and we're inside the CMD byte modal dialog
+      knobConfigurations[configKnobID].cmdbyte = getActiveKnob(256); // set the command byte to a value between 0x00 - 0xFF based on encoder position
       return;
     }
   }
 
-  if(buttonStates[0] && buttonStates[1]) {
-    if(systemMode == MODE_TEST) {
-      systemMode = MODE_CONFIG;
-      systemSubMode = SUBMODE_1;
-      delay(500);
+  if(systemMode == MODE_CONFIG) { // we're in CONFIG mode
+    if(systemSubMode == SUBMODE_2_CMD) { // we're inside the CMD byte modal window
+      if(!bPrevEncoderBtn && bEncoderBtn) {  // the user depressed the encoder button
+          systemSubMode = SUBMODE_2; // go back to the knob config screen
+          bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to current state so we don't loop
+          return;
+      }
     }
-    else if (systemMode == MODE_CONFIG) {
-      systemMode = MODE_RUNNING;
-      delay(500);
+  }
+
+  if(buttonStates[0] && buttonStates[1]) {  // if top two buttons depressed simultaneously
+    if(systemMode == MODE_TEST) { // if we're in TEST mode
+      systemMode = MODE_CONFIG;  // change to CONFIG mode
+      systemSubMode = SUBMODE_1; // set the CONFIG screen to the knob selection screen
+      delay(500); // pause half a second
     }
-    else if (systemMode == MODE_RUNNING) {
-      systemMode = MODE_TEST;
-      delay(500);
+    else if (systemMode == MODE_CONFIG) { // if we're in CONFIG mode
+      systemMode = MODE_RUNNING; // change to RUNNING mode
+      delay(500); // pause half a second
+    }
+    else if (systemMode == MODE_RUNNING) { // if we're in RUN mode
+      systemMode = MODE_TEST; // switch to TEST mode
+      delay(500); // pause half a second
     }
   }
 }
