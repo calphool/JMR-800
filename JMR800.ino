@@ -70,8 +70,20 @@ const uint8_t buttonPins[NUM_BUTTONS] = {
 #define MODE_CONFIG 1
 #define MODE_RUNNING 2
 
+// Config knob selector screen
 #define SUBMODE_1 0
+
+// Config knob update screen
 #define SUBMODE_2 1
+
+// Config knob update name field
+#define SUBMODE_2_NAME 2
+
+// Config knob update CMD Byte
+#define SUBMODE_2_CMD 3
+
+// Config knob update Type
+#define SUBMODE_2_TYPE 4
 
 uint8_t systemMode;
 uint8_t systemSubMode;
@@ -136,8 +148,15 @@ typedef struct {
   uint typecode;
 } knobConfig;
 
+#define KNOB_CONFIG_NAME_HIGHLIGHTED 0
+#define KNOB_CONFIG_CMD_HIGHLIGHTED 1
+#define KNOB_CONFIG_TYPECMD_HIGHLIGHTED 2
+#define KNOB_CONFIG_OKAY_HIGHLIGHTED 3
+#define KNOB_CONFIG_CANCEL_HIGHLIGHTED 4
+
 // array of knob configurations
 knobConfig knobConfigurations[56];
+knobConfig lastKnobConfig;
 
 // small text buffer
 char buffer[20];
@@ -372,12 +391,12 @@ void drawKnobArrow(int x, int y, int deg) {         // TODO: rewrite this to use
   display.drawLine(cx, cy, ex, ey, SH110X_BLACK);
 }
 
-long getActiveKnob() {
-    long i = (lastEncoderPosition>>2) % 56; 
+long getActiveKnob(long divisor) {
+    long i = (lastEncoderPosition>>2) % divisor; 
     if(i < 0)
       i = 0;
-    if(i > 56)
-      i = 56;
+    if(i > divisor)
+      i = divisor-1;
     
     return i;
 }
@@ -390,7 +409,7 @@ void drawKnob(int knobid, int x, int y, int i) {
   display.drawLine(x+8, y+2, x+8, y+3, SH110X_WHITE);
 
   if(systemMode == MODE_CONFIG) {
-    if(getActiveKnob() == knobid) {
+    if(getActiveKnob(56) == knobid) {
       toggle = -toggle;
       if(toggle > 0) {
           display.fillRect(x+2, y+1, 6, 4, SH110X_BLACK);
@@ -494,7 +513,7 @@ void drawTestScreen() {
 
 
 void drawConfigKnobScreen() {
-  long highlight = getActiveKnob() % 5;
+  long highlight = getActiveKnob(5);
   toggle = -toggle;
   display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
   display.drawRect(87, 27, 1, 1, SH110X_WHITE);
@@ -514,7 +533,7 @@ void drawConfigKnobScreen() {
   display.setTextColor(SH110X_WHITE);
   display.print("Knob #" + String(configKnobID));
 
-  if(highlight == 0) {
+  if(highlight == 0 && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
       display.drawRect(38,19,84,11, SH110X_WHITE);
     else
@@ -524,7 +543,7 @@ void drawConfigKnobScreen() {
   display.setTextColor(SH110X_WHITE);
   display.print("Name: " + String(knobConfigurations[configKnobID].name));
   
-  if(highlight == 1) {
+  if(highlight == 1 && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
       display.drawRect(61,28,29,11, SH110X_WHITE);
     else
@@ -535,7 +554,7 @@ void drawConfigKnobScreen() {
   sprintf(buffer, "CMD Byte: 0x%02X",  knobConfigurations[configKnobID].cmdbyte);
   display.print(buffer);
 
-  if(highlight == 2) {
+  if(highlight == 2 && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
       display.drawRect(32,37,36,11, SH110X_WHITE);
     else
@@ -551,7 +570,7 @@ void drawConfigKnobScreen() {
   display.drawLine(61, 43, 61, 42, SH110X_WHITE);
   display.drawLine(60, 41, 62, 40, SH110X_WHITE);
 
-  if(highlight == 3) {
+  if(highlight == 3 && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
       display.drawRect(30,51,19,11, SH110X_WHITE);
     else
@@ -562,7 +581,7 @@ void drawConfigKnobScreen() {
   display.setTextColor(SH110X_WHITE);
   display.print("OK");
 
-  if(highlight == 4) {
+  if(highlight == 4 && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
       display.drawRect(58,51,44,11, SH110X_WHITE);
     else
@@ -595,6 +614,41 @@ void drawConfigKnobScreen() {
   display.drawPixel(60, 61, SH110X_BLACK);
   display.drawPixel(98, 61, SH110X_BLACK);
   display.drawPixel(98, 51, SH110X_BLACK);
+
+  if(systemSubMode == SUBMODE_2_CMD ) {
+    display.fillRect (15,15,100,45,SH110X_BLACK);
+    display.drawRect (15,15,100,45,SH110X_WHITE);
+    display.drawPixel(15,15,SH110X_BLACK);
+    display.drawPixel(15,60,SH110X_BLACK);
+    display.drawPixel(115,15,SH110X_BLACK);
+    display.drawPixel(115,60,SH110X_BLACK);
+    display.setCursor(50,30);
+    sprintf(buffer, "0x%02X",  knobConfigurations[configKnobID].cmdbyte);
+    display.print(buffer);
+  }
+  else
+  if(systemSubMode == SUBMODE_2_TYPE) {
+    display.display();
+    display.fillRect (15,15,100,45,SH110X_BLACK);
+    display.drawRect (15,15,100,45,SH110X_WHITE);
+    display.drawPixel(15,15,SH110X_BLACK);
+    display.drawPixel(15,60,SH110X_BLACK);
+    display.drawPixel(115,15,SH110X_BLACK);
+    display.drawPixel(115,60,SH110X_BLACK);
+    display.setCursor(21,21);
+    display.print("Type handler...");
+  }
+  else
+  if(systemSubMode == SUBMODE_2_NAME) {
+    display.fillRect (15,15,100,45,SH110X_BLACK);
+    display.drawRect (15,15,100,45,SH110X_WHITE);
+    display.drawPixel(15,15,SH110X_BLACK);
+    display.drawPixel(15,60,SH110X_BLACK);
+    display.drawPixel(115,15,SH110X_BLACK);
+    display.drawPixel(115,60,SH110X_BLACK);
+    display.setCursor(21,21);
+    display.print("Name handler...");
+  }
 
   display.display();
 }
@@ -646,7 +700,7 @@ void drawConfigScreen() {
 
   lastdrawTestScreen = millis();
 
-  if(systemSubMode == SUBMODE_2) {
+  if(systemSubMode == SUBMODE_2 || systemSubMode == SUBMODE_2_NAME || systemSubMode == SUBMODE_2_CMD || systemSubMode == SUBMODE_2_TYPE) {
     drawConfigKnobScreen();
   }
   else {
@@ -740,14 +794,72 @@ void setup() {
 void handleControlStatus() {
   gatherControlSettings();
 
-  if(systemMode == MODE_CONFIG) {
+  if(systemMode == MODE_CONFIG) { 
     if(systemSubMode == SUBMODE_1) {
-      if(bPrevEncoderBtn != bEncoderBtn) {
+      if(!bPrevEncoderBtn && bEncoderBtn) {
+        bPrevEncoderBtn = bEncoderBtn;
         systemSubMode = SUBMODE_2;
-        configKnobID = getActiveKnob();
+        configKnobID = getActiveKnob(56);
+        memcpy(&lastKnobConfig, &knobConfigurations[configKnobID], sizeof(lastKnobConfig));
+        return;
       }
     }
   }
+
+  if(systemMode == MODE_CONFIG) {
+    if(systemSubMode == SUBMODE_2_CMD) {
+      if(!bPrevEncoderBtn && bEncoderBtn) {
+        systemSubMode = SUBMODE_2;
+        bPrevEncoderBtn = bEncoderBtn;
+        return;
+      }
+    }
+  }
+
+  if(systemMode == MODE_CONFIG) { // this kind of works, but it bounces back into the SUBMODE_2 screen on the next loop
+    if(systemSubMode == SUBMODE_2) {
+      if(!bPrevEncoderBtn && bEncoderBtn) {
+        if(getActiveKnob(5)  == KNOB_CONFIG_CANCEL_HIGHLIGHTED) { // we're on the cancel icon
+            memcpy(&knobConfigurations[configKnobID], &lastKnobConfig, sizeof(lastKnobConfig)); // make sure we didn't change the knob configuration record
+            systemSubMode = SUBMODE_1;
+            bPrevEncoderBtn = bEncoderBtn;
+            return;
+        }
+        else
+        if(getActiveKnob(5) == KNOB_CONFIG_OKAY_HIGHLIGHTED) {
+            systemSubMode = SUBMODE_1;
+            bPrevEncoderBtn = bEncoderBtn;
+            return;
+        }
+        else
+        if(getActiveKnob(5) ==  KNOB_CONFIG_CMD_HIGHLIGHTED) {
+          systemSubMode = SUBMODE_2_CMD;
+          bPrevEncoderBtn = bEncoderBtn;
+          return;
+        }
+        else
+        if(getActiveKnob(5) == KNOB_CONFIG_NAME_HIGHLIGHTED) {
+          systemSubMode = SUBMODE_2_NAME;
+          bPrevEncoderBtn = bEncoderBtn;
+          return;
+        }
+        else
+        if(getActiveKnob(5) == KNOB_CONFIG_TYPECMD_HIGHLIGHTED) {
+          systemSubMode = SUBMODE_2_TYPE;
+          bPrevEncoderBtn = bEncoderBtn;
+          return;
+        }
+      }
+    }
+  }
+
+  if(systemMode == MODE_CONFIG) { // this kind of works, but it bounces back into the SUBMODE_2 screen on the next loop
+    if(systemSubMode == SUBMODE_2_CMD) {
+      knobConfigurations[configKnobID].cmdbyte = getActiveKnob(256);
+      return;
+    }
+  }
+
 
   if(buttonStates[0] && buttonStates[1]) {
     if(systemMode == MODE_TEST) {
@@ -771,18 +883,16 @@ void handleDisplays() {
   if(systemMode == MODE_TEST) {
     drawTestScreen();
     setLEDs(ledPattern);
-    delay(10);
   }
   else if (systemMode == MODE_CONFIG) {
     drawConfigScreen();
     setLEDs(0b00000000);
-    delay(10);
   }
   else { // RUNNING MODE
     drawRunningScreen();
     setLEDs(0b00000000);
-    delay(10);
   }
+  delay(10);
 }
 
 /* --------------------------------------------------------------
@@ -792,4 +902,3 @@ void loop() {
   handleControlStatus();
   handleDisplays();
 }
-
