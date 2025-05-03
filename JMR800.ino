@@ -5,6 +5,7 @@
 #include <ADC.h>
 #include "JX8P.h"
 #include <Encoder.h>
+#include <EEPROM.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -140,19 +141,18 @@ int toggle = -1;
 // active knob for configuration screen
 long configKnobID = -1;
 
-
-// knob configuration structure
-typedef struct {
-  char name[15];
-  uint8_t cmdbyte;
-  uint typecode;
-} knobConfig;
-
 #define KNOB_CONFIG_NAME_HIGHLIGHTED 0
 #define KNOB_CONFIG_CMD_HIGHLIGHTED 1
 #define KNOB_CONFIG_TYPECMD_HIGHLIGHTED 2
 #define KNOB_CONFIG_OKAY_HIGHLIGHTED 3
 #define KNOB_CONFIG_CANCEL_HIGHLIGHTED 4
+
+// knob configuration structure
+typedef struct {
+  char name[15];
+  uint8_t cmdbyte;
+  uint8_t typecode;
+} knobConfig;
 
 // array of knob configurations
 knobConfig knobConfigurations[56];
@@ -225,6 +225,7 @@ void gatherPotentiometerValues() {
 */
 void log(const String& s) {
   Serial.println(s);
+  Serial.flush();
 }
 
 
@@ -658,7 +659,7 @@ void drawConfigSelectionScreen() {
     uint8_t iKnobCtr = 0;
 
     display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
-    display.setCursor(0,0);                                           // position for title
+    display.setCursor(0,0);                                            // position for title
     display.printf("Config - Pick Knob");                              // title
     display.drawRect(0, 9, SCREEN_WIDTH, 54, SH110X_WHITE);            // box around UI
     display.drawRect(88, 15, 21, 11, SH110X_WHITE);                    // small screen rectangle
@@ -715,11 +716,27 @@ void drawRunningScreen() {
   display.display();
 }
 
+void saveKnobs() {
+  for (int i = 0; i < 56; i++) {
+    int addr = i * sizeof(knobConfig);
+    EEPROM.put(addr, knobConfigurations[i]);
+  }
+}
+
+void loadKnobs() {
+  for (int i = 0; i < 56; i++) {
+    int addr = i * sizeof(knobConfig);
+    EEPROM.get(addr, knobConfigurations[i]);
+  }
+}
+
 /* --------------------------------------------------------------
    |  Initialization                                            |
    -------------------------------------------------------------- */
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
+  EEPROM.begin();
+  loadKnobs(); 
 
   systemMode = MODE_TEST;
   systemSubMode = SUBMODE_1;
@@ -780,12 +797,65 @@ void setup() {
       }
   }
 
-  log("clearing knob configurations...");
-  memset(knobConfigurations, 0, sizeof(knobConfigurations));
-
-  for(int i=0;i<56;i++) {
-    strcpy(knobConfigurations[i].name,"?");
-  }
+/*
+  strcpy(knobConfigurations[0].name, "DCO1 Range"); knobConfigurations[0].cmdbyte = 0x80;
+  strcpy(knobConfigurations[1].name, "DCO1 Waveform"); knobConfigurations[1].cmdbyte = 0x81;
+  strcpy(knobConfigurations[2].name, "DCO1 Tune"); knobConfigurations[2].cmdbyte = 0x82;
+  strcpy(knobConfigurations[3].name, "DCO1 LFO Depth"); knobConfigurations[3].cmdbyte = 0x83;
+  strcpy(knobConfigurations[4].name, "DCO1 Env Depth"); knobConfigurations[4].cmdbyte = 0x84;
+  strcpy(knobConfigurations[5].name, "DCO2 Range"); knobConfigurations[5].cmdbyte = 0x85;
+  strcpy(knobConfigurations[6].name, "DCO2 Waveform"); knobConfigurations[6].cmdbyte = 0x86;
+  strcpy(knobConfigurations[7].name, "DCO XMOD"); knobConfigurations[7].cmdbyte = 0x87;
+  strcpy(knobConfigurations[8].name, "DCO2 Tune"); knobConfigurations[8].cmdbyte = 0x88;
+  strcpy(knobConfigurations[9].name, "DCO2 Fine Tune"); knobConfigurations[9].cmdbyte = 0x89;
+  strcpy(knobConfigurations[10].name, "DCO2 LFO Depth"); knobConfigurations[10].cmdbyte = 0x8A;
+  strcpy(knobConfigurations[11].name, "DCO2 Env Depth"); knobConfigurations[11].cmdbyte = 0x8B;
+  strcpy(knobConfigurations[12].name, "DCO Dynamics"); knobConfigurations[12].cmdbyte = 0x8F;
+  strcpy(knobConfigurations[13].name, "DCO EG Mode"); knobConfigurations[13].cmdbyte = 0x90;
+  strcpy(knobConfigurations[14].name, "Mix DCO1"); knobConfigurations[14].cmdbyte = 0x91;
+  strcpy(knobConfigurations[15].name, "Mix DCO2"); knobConfigurations[15].cmdbyte = 0x92;
+  strcpy(knobConfigurations[16].name, "Mix Env"); knobConfigurations[16].cmdbyte = 0x93;
+  strcpy(knobConfigurations[17].name, "Mix Dynamics"); knobConfigurations[17].cmdbyte = 0x94;
+  strcpy(knobConfigurations[18].name, "Mix EG Mode"); knobConfigurations[18].cmdbyte = 0x95;
+  strcpy(knobConfigurations[19].name, "VCF HPF"); knobConfigurations[19].cmdbyte = 0x96;
+  strcpy(knobConfigurations[20].name, "VCF Freq"); knobConfigurations[20].cmdbyte = 0x97;
+  strcpy(knobConfigurations[21].name, "VCF Resonance"); knobConfigurations[21].cmdbyte = 0x98;
+  strcpy(knobConfigurations[22].name, "VCF LFO"); knobConfigurations[22].cmdbyte = 0x99;
+  strcpy(knobConfigurations[23].name, "VCF Env"); knobConfigurations[23].cmdbyte = 0x9A;
+  strcpy(knobConfigurations[24].name, "VCF Key"); knobConfigurations[24].cmdbyte = 0x9B;
+  strcpy(knobConfigurations[25].name, "VCF Dynamics"); knobConfigurations[25].cmdbyte = 0x9C;
+  strcpy(knobConfigurations[26].name, "VCF EG Mode"); knobConfigurations[26].cmdbyte = 0x9D;
+  strcpy(knobConfigurations[27].name, "VCA Level"); knobConfigurations[27].cmdbyte = 0x9E;
+  strcpy(knobConfigurations[28].name, "VCA Dynamics"); knobConfigurations[28].cmdbyte = 0x9F;
+  strcpy(knobConfigurations[29].name, "Chorus"); knobConfigurations[29].cmdbyte = 0xA0;
+  strcpy(knobConfigurations[30].name, "LFO Waveform"); knobConfigurations[30].cmdbyte = 0xA1;
+  strcpy(knobConfigurations[31].name, "LFO Delay"); knobConfigurations[31].cmdbyte = 0xA2;
+  strcpy(knobConfigurations[32].name, "LFO Rate"); knobConfigurations[32].cmdbyte = 0xA3;
+  strcpy(knobConfigurations[33].name, "EG Env1 Attk"); knobConfigurations[33].cmdbyte = 0xA4;
+  strcpy(knobConfigurations[34].name, "EG Env1 Decay"); knobConfigurations[34].cmdbyte = 0xA5;
+  strcpy(knobConfigurations[35].name, "EG Env1 Sust"); knobConfigurations[35].cmdbyte = 0xA6;
+  strcpy(knobConfigurations[36].name, "EG Env1 Rel"); knobConfigurations[36].cmdbyte = 0xA7;
+  strcpy(knobConfigurations[37].name, "EG Env1 Key"); knobConfigurations[37].cmdbyte = 0xA8;
+  strcpy(knobConfigurations[38].name, "EG Env2 Attk"); knobConfigurations[38].cmdbyte = 0xA9;
+  strcpy(knobConfigurations[39].name, "EG Env2 Decay"); knobConfigurations[39].cmdbyte = 0xAA;
+  strcpy(knobConfigurations[40].name, "EG Env2 Sust"); knobConfigurations[40].cmdbyte = 0xAB;
+  strcpy(knobConfigurations[41].name, "EG Env2 Rel"); knobConfigurations[41].cmdbyte = 0xAC;
+  strcpy(knobConfigurations[42].name, "EG Env2 Key"); knobConfigurations[42].cmdbyte = 0xAD;
+  strcpy(knobConfigurations[43].name, "VCA EG Mode"); knobConfigurations[43].cmdbyte = 0xAF;
+  strcpy(knobConfigurations[44].name, "PMW1 Width"); knobConfigurations[44].cmdbyte = 0xB0;
+  strcpy(knobConfigurations[45].name, "PWM1 Env"); knobConfigurations[45].cmdbyte = 0xB1;
+  strcpy(knobConfigurations[46].name, "PMW1 LFO"); knobConfigurations[46].cmdbyte = 0xB2;
+  strcpy(knobConfigurations[47].name, "PWM2 Width"); knobConfigurations[47].cmdbyte = 0xB3;
+  strcpy(knobConfigurations[48].name, "PWM2 Env"); knobConfigurations[48].cmdbyte = 0xB4;
+  strcpy(knobConfigurations[49].name, "PWM2 LFO"); knobConfigurations[49].cmdbyte = 0xB5;
+  strcpy(knobConfigurations[50].name, "PWM Dyna"); knobConfigurations[50].cmdbyte = 0xC4;
+  strcpy(knobConfigurations[51].name, "LFO Sync"); knobConfigurations[51].cmdbyte = 0xC6;
+  strcpy(knobConfigurations[52].name, "PWM Mode"); knobConfigurations[52].cmdbyte = 0xCC;
+  strcpy(knobConfigurations[53].name, "DCO1 Range"); knobConfigurations[53].cmdbyte = 0x80;
+  strcpy(knobConfigurations[54].name, "DCO1 Waveform"); knobConfigurations[54].cmdbyte = 0x81;
+  strcpy(knobConfigurations[55].name, "DCO1 Tune"); knobConfigurations[55].cmdbyte = 0x82;
+  saveKnobs();
+*/
 
   log("Initialized.");
 }
@@ -816,7 +886,7 @@ void handleControlStatus() {
     }
   }
 
-  if(systemMode == MODE_CONFIG) { // this kind of works, but it bounces back into the SUBMODE_2 screen on the next loop
+  if(systemMode == MODE_CONFIG) { 
     if(systemSubMode == SUBMODE_2) {
       if(!bPrevEncoderBtn && bEncoderBtn) {
         if(getActiveKnob(5)  == KNOB_CONFIG_CANCEL_HIGHLIGHTED) { // we're on the cancel icon
@@ -829,6 +899,7 @@ void handleControlStatus() {
         if(getActiveKnob(5) == KNOB_CONFIG_OKAY_HIGHLIGHTED) {
             systemSubMode = SUBMODE_1;
             bPrevEncoderBtn = bEncoderBtn;
+            saveKnobs();
             return;
         }
         else
@@ -859,7 +930,6 @@ void handleControlStatus() {
       return;
     }
   }
-
 
   if(buttonStates[0] && buttonStates[1]) {
     if(systemMode == MODE_TEST) {
