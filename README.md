@@ -67,6 +67,17 @@ April 29, 2025
 Got the new PCB and the rest of the hardware put together.  I wrote some temporary code that implements a "TEST MODE" that shows the condition of all 
 the knobs.
 
+May 3, 2025
+
+I've updated the code quite a bit.  It now has 3 modes.  Run mode, Test mode, and Config mode.  I've been working on the Config mode.  You can change 
+into these different modes by pressing Button 1 and Button 2 simultaneously.  When you configure a knob, you can change its name, its command byte, 
+and select which type of knob it is.  I've got the command byte selection finished, and I'm working on the name update code now.  Once I get all the 
+config stuff finished (perhaps this evening), I'll begin working on the Run mode.  This stuff was prototyped already with the earlier version of the 
+board, so I'm pretty sure the code for interacting with the synth will work.
+
+I may eventually implement some kind of "preset mode" that allows you to scroll through a given configuration of knobs, select it, and it would play 
+all 56 knobs into the synthesizer.  This may be a submenu of the Run mode.  One step at a time of course...
+
 ## License
 
 This project is released under the MIT License.
