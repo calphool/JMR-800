@@ -67,6 +67,26 @@ const uint8_t buttonPins[NUM_BUTTONS] = {
   PUSH_BTN_SW4_PIN
 };
 
+#define NUM_TYPE_CODES 9
+
+#define TYPE_CODE_RANGE 0
+#define TYPE_CODE_WAVE_FORM 1
+#define TYPE_CODE_3_2_1_OFF 2
+#define TYPE_CODE_0_TO_10 3
+#define TYPE_CODE_OCTAVE 4
+#define TYPE_CODE_MODE 5
+#define TYPE_CODE_ENV2_GATE 6
+#define TYPE_CODE_LFO_WAVE_FORM 7
+#define TYPE_CODE_2_1_OFF 8
+
+typedef struct {
+  char typeCodeName[15];
+  uint cd;
+}
+typeCode;
+
+typeCode typeCodes[NUM_TYPE_CODES];
+
 // system modes
 #define MODE_TEST 0
 #define MODE_CONFIG 1
@@ -734,6 +754,25 @@ void setup() {
   EEPROM.begin();
   loadKnobs(); 
 
+  typeCodes[TYPE_CODE_RANGE].cd = TYPE_CODE_RANGE;
+  strcpy(typeCodes[TYPE_CODE_RANGE].typeCodeName, "Range");
+  typeCodes[TYPE_CODE_WAVE_FORM].cd = TYPE_CODE_WAVE_FORM;
+  strcpy(typeCodes[TYPE_CODE_WAVE_FORM].typeCodeName, "Wave Form");
+  typeCodes[TYPE_CODE_3_2_1_OFF].cd = TYPE_CODE_3_2_1_OFF;
+  strcpy(typeCodes[TYPE_CODE_3_2_1_OFF].typeCodeName, "3-2-1-Off");
+  typeCodes[TYPE_CODE_0_TO_10].cd = TYPE_CODE_0_TO_10;
+  strcpy(typeCodes[TYPE_CODE_0_TO_10].typeCodeName, "0 To 10");
+  typeCodes[TYPE_CODE_OCTAVE].cd = TYPE_CODE_OCTAVE;
+  strcpy(typeCodes[TYPE_CODE_OCTAVE].typeCodeName, "Octave");
+  typeCodes[TYPE_CODE_MODE].cd = TYPE_CODE_MODE;
+  strcpy(typeCodes[TYPE_CODE_MODE].typeCodeName, "Mode");
+  typeCodes[TYPE_CODE_ENV2_GATE].cd = TYPE_CODE_ENV2_GATE;
+  strcpy(typeCodes[TYPE_CODE_ENV2_GATE].typeCodeName, "Env2-Gate");
+  typeCodes[TYPE_CODE_LFO_WAVE_FORM].cd = TYPE_CODE_LFO_WAVE_FORM;
+  strcpy(typeCodes[TYPE_CODE_LFO_WAVE_FORM].typeCodeName, "LFO Wave Form");
+  typeCodes[TYPE_CODE_2_1_OFF].cd = TYPE_CODE_2_1_OFF;
+  strcpy(typeCodes[TYPE_CODE_2_1_OFF].typeCodeName, "2-1-Off");
+
   systemMode = MODE_TEST;
   systemSubMode = SUBMODE_1;
 
@@ -793,8 +832,8 @@ void setup() {
       }
   }
 
-/*
   // code to initialize the EEProm configuration if it hasn't already been set -- don't run this unless you're on a new Teensy, and only do it once
+  /*
   strcpy(knobConfigurations[0].name, "DCO1 Range"); knobConfigurations[0].cmdbyte = 0x80;
   strcpy(knobConfigurations[1].name, "DCO1 Waveform"); knobConfigurations[1].cmdbyte = 0x81;
   strcpy(knobConfigurations[2].name, "DCO1 Tune"); knobConfigurations[2].cmdbyte = 0x82;
@@ -851,8 +890,37 @@ void setup() {
   strcpy(knobConfigurations[53].name, "DCO1 Range"); knobConfigurations[53].cmdbyte = 0x80;
   strcpy(knobConfigurations[54].name, "DCO1 Waveform"); knobConfigurations[54].cmdbyte = 0x81;
   strcpy(knobConfigurations[55].name, "DCO1 Tune"); knobConfigurations[55].cmdbyte = 0x82;
+  knobConfigurations[0].typecode = TYPE_CODE_RANGE; knobConfigurations[1].typecode = TYPE_CODE_WAVE_FORM;
+  knobConfigurations[2].typecode = TYPE_CODE_OCTAVE; knobConfigurations[3].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[4].typecode = TYPE_CODE_0_TO_10; knobConfigurations[5].typecode = TYPE_CODE_RANGE;
+  knobConfigurations[6].typecode = TYPE_CODE_WAVE_FORM; knobConfigurations[7].typecode = TYPE_CODE_3_2_1_OFF;
+  knobConfigurations[8].typecode = TYPE_CODE_OCTAVE; knobConfigurations[9].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[10].typecode = TYPE_CODE_0_TO_10; knobConfigurations[11].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[12].typecode = TYPE_CODE_3_2_1_OFF; knobConfigurations[13].typecode = TYPE_CODE_MODE;
+  knobConfigurations[14].typecode = TYPE_CODE_0_TO_10; knobConfigurations[15].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[16].typecode = TYPE_CODE_0_TO_10; knobConfigurations[17].typecode = TYPE_CODE_3_2_1_OFF;
+  knobConfigurations[18].typecode = TYPE_CODE_MODE; knobConfigurations[19].typecode = TYPE_CODE_3_2_1_OFF;
+  knobConfigurations[20].typecode = TYPE_CODE_0_TO_10; knobConfigurations[21].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[22].typecode = TYPE_CODE_0_TO_10; knobConfigurations[23].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[24].typecode = TYPE_CODE_0_TO_10; knobConfigurations[25].typecode = TYPE_CODE_3_2_1_OFF;
+  knobConfigurations[26].typecode = TYPE_CODE_MODE; knobConfigurations[27].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[28].typecode = TYPE_CODE_3_2_1_OFF; knobConfigurations[29].typecode = TYPE_CODE_2_1_OFF;
+  knobConfigurations[30].typecode = TYPE_CODE_LFO_WAVE_FORM; knobConfigurations[31].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[32].typecode = TYPE_CODE_0_TO_10; knobConfigurations[33].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[34].typecode = TYPE_CODE_0_TO_10; knobConfigurations[35].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[36].typecode = TYPE_CODE_0_TO_10; knobConfigurations[37].typecode = TYPE_CODE_3_2_1_OFF;
+  knobConfigurations[38].typecode = TYPE_CODE_0_TO_10; knobConfigurations[39].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[40].typecode = TYPE_CODE_0_TO_10; knobConfigurations[41].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[42].typecode = TYPE_CODE_3_2_1_OFF; knobConfigurations[43].typecode = TYPE_CODE_ENV2_GATE;
+  knobConfigurations[44].typecode = TYPE_CODE_3_2_1_OFF; knobConfigurations[45].typecode = TYPE_CODE_ENV2_GATE;
+  knobConfigurations[46].typecode = TYPE_CODE_0_TO_10; knobConfigurations[47].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[48].typecode = TYPE_CODE_0_TO_10; knobConfigurations[49].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[50].typecode = TYPE_CODE_0_TO_10; knobConfigurations[51].typecode = TYPE_CODE_0_TO_10;
+  knobConfigurations[52].typecode = TYPE_CODE_0_TO_10; knobConfigurations[53].typecode = TYPE_CODE_RANGE;
+  knobConfigurations[54].typecode = TYPE_CODE_WAVE_FORM; knobConfigurations[55].typecode = TYPE_CODE_OCTAVE;
   saveKnobs();
-*/
+  */
+
 
   log("Initialized.");
 }
