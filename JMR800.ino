@@ -857,6 +857,11 @@ void setup() {
   log("Initialized.");
 }
 
+int AsciiToEncoder(char c) {
+  int v = ((((int)c) - 65) * 4) + 132;
+  return v;
+}
+
 
 void handleControlStatus() {
   gatherControlSettings(); // sweep all the controls, store their state in a buffer
@@ -890,6 +895,8 @@ void handleControlStatus() {
             memcpy(&knobConfigurations[configKnobID], &lastKnobConfig, sizeof(lastKnobConfig)); // restore its knob's configuration to the save value (cancel)
             systemSubMode = SUBMODE_1; // return back to the knob selection screen
             bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to the current state so we don't loop
+            encoderKnob.write(0); // reset encoder
+            lastEncoderPosition = 0; // reset encoder
             return;
         }
         else
@@ -897,6 +904,8 @@ void handleControlStatus() {
             systemSubMode = SUBMODE_1; // return to the knob selection screen
             bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to the current state so we don't loop
             saveKnobs(); // write the knob buffer back to EEProm (probably should update this so it only writes what changed)
+            encoderKnob.write(0); // reset encoder
+            lastEncoderPosition = 0; // reset encoder
             return;
         }
         else
@@ -908,6 +917,8 @@ void handleControlStatus() {
         else
         if(getActiveKnob(5) == KNOB_CONFIG_NAME_HIGHLIGHTED) { // had the NAME box highlighted
           textCursorPos = 0;
+          encoderKnob.write(AsciiToEncoder(knobConfigurations[configKnobID].name[textCursorPos])); // set encoder to the correct value to keep character whatever it currently is
+          lastEncoderPosition = 0;
           systemSubMode = SUBMODE_2_NAME; // go into the knob config NAME update modal window
           bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to current state so we don't loop
           return;
@@ -929,6 +940,46 @@ void handleControlStatus() {
     }
   }
 
+  if(buttonStates[0]) { // first button pushed
+    if(systemMode == MODE_CONFIG) { // if we're inside Config mode
+      if(systemSubMode == SUBMODE_2_NAME) { // we're in the name modal
+        if(textCursorPos > 0)  // we can still go left
+          textCursorPos--;      // go left
+        else 
+          textCursorPos = 14; // wrap around
+        encoderKnob.write(AsciiToEncoder(knobConfigurations[configKnobID].name[textCursorPos]));
+        lastEncoderPosition = 0;
+        delay(250);
+        return;
+      }
+    }
+  }
+
+  if(buttonStates[1]) {
+    if(systemMode == MODE_CONFIG) {  // if we're inside Config mode
+      if(systemSubMode == SUBMODE_2_NAME) { // we're in the name modal
+        if(textCursorPos < 14) // we can still go right
+          textCursorPos++;     // go right 
+        else
+          textCursorPos = 0;   // wrap around
+        encoderKnob.write(AsciiToEncoder(knobConfigurations[configKnobID].name[textCursorPos]));
+        lastEncoderPosition = 0;
+        delay(250);
+        return;
+      }
+    }
+  }
+
+  if(systemMode == MODE_CONFIG) { // we're in CONFIG mode
+    if(systemSubMode == SUBMODE_2_NAME) { // we're inside the NAME modal window
+      if(!bPrevEncoderBtn && bEncoderBtn) {  // the user depressed the encoder button
+          systemSubMode = SUBMODE_2; // go back to the knob config screen
+          bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to current state so we don't loop
+          return;
+      }
+    }
+  }
+
   if(systemMode == MODE_CONFIG) { // we're in CONFIG mode
     if(systemSubMode == SUBMODE_2_CMD) { // we're inside the CMD byte modal window
       if(!bPrevEncoderBtn && bEncoderBtn) {  // the user depressed the encoder button
@@ -938,6 +989,15 @@ void handleControlStatus() {
       }
     }
   }
+
+  if(systemMode == MODE_CONFIG) { // if we're inside Config mode
+    if(systemSubMode == SUBMODE_2_NAME) { // and we're in the naming modal dialog
+      knobConfigurations[configKnobID].name[textCursorPos] = getActiveKnob(94) + 32;  // set the current text position of the name to whatever the encoder sets it to
+      return;
+    }
+  }
+
+
 
   if(buttonStates[0] && buttonStates[1]) {  // if top two buttons depressed simultaneously
     if(systemMode == MODE_TEST) { // if we're in TEST mode
