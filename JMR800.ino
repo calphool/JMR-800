@@ -6,6 +6,7 @@
 #include "JX8P.h"
 #include <Encoder.h>
 #include <EEPROM.h>
+#include <Fonts/TomThumb.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -538,7 +539,7 @@ void drawConfigKnobScreen() {
   display.setTextColor(SH110X_WHITE);
   display.print("Knob #" + String(configKnobID));
 
-  if(highlight == 0 && systemSubMode == SUBMODE_2) {
+  if(highlight == KNOB_CONFIG_NAME_HIGHLIGHTED && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
       display.drawRect(38,19,84,11, SH110X_WHITE);
     else
@@ -548,7 +549,7 @@ void drawConfigKnobScreen() {
   display.setTextColor(SH110X_WHITE);
   display.print("Name: " + String(knobConfigurations[configKnobID].name));
   
-  if(highlight == 1 && systemSubMode == SUBMODE_2) {
+  if(highlight == KNOB_CONFIG_CMD_HIGHLIGHTED && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
       display.drawRect(61,28,29,11, SH110X_WHITE);
     else
@@ -559,23 +560,17 @@ void drawConfigKnobScreen() {
   sprintf(buffer, "CMD Byte: 0x%02X",  knobConfigurations[configKnobID].cmdbyte);
   display.print(buffer);
 
-  if(highlight == 2 && systemSubMode == SUBMODE_2) {
+  if(highlight == KNOB_CONFIG_TYPECMD_HIGHLIGHTED && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
-      display.drawRect(32,37,36,11, SH110X_WHITE);
+      display.drawRect(32,37,90,11, SH110X_WHITE);
     else
-      display.drawRect(32,37,36,11, SH110X_BLACK);
+      display.drawRect(32,37,90,11, SH110X_BLACK);
   }
   display.setCursor(4, 39);
   display.setTextColor(SH110X_WHITE);
-  display.print("Type: " + String(knobConfigurations[configKnobID].typecode));
-  display.drawRect(34, 39, 31, 7, SH110X_WHITE);
-  
-  display.drawLine(58, 40, 58, 44, SH110X_WHITE);
-  display.drawLine(60, 42, 62, 41, SH110X_WHITE);
-  display.drawLine(61, 43, 61, 42, SH110X_WHITE);
-  display.drawLine(60, 41, 62, 40, SH110X_WHITE);
+  display.print("Type:" + String(typeCodes[knobConfigurations[configKnobID].typecode].typeCodeName));
 
-  if(highlight == 3 && systemSubMode == SUBMODE_2) {
+  if(highlight == KNOB_CONFIG_OKAY_HIGHLIGHTED && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
       display.drawRect(30,51,19,11, SH110X_WHITE);
     else
@@ -586,7 +581,7 @@ void drawConfigKnobScreen() {
   display.setTextColor(SH110X_WHITE);
   display.print("OK");
 
-  if(highlight == 4 && systemSubMode == SUBMODE_2) {
+  if(highlight == KNOB_CONFIG_CANCEL_HIGHLIGHTED && systemSubMode == SUBMODE_2) {
     if(toggle > 0)
       display.drawRect(58,51,44,11, SH110X_WHITE);
     else
@@ -633,10 +628,31 @@ void drawConfigKnobScreen() {
   }
   else
   if(systemSubMode == SUBMODE_2_TYPE) {
-    display.fillRect (7,12,112,48,SH110X_BLACK);
-    display.drawRect (7,12,112,48,SH110X_WHITE);
-    display.setCursor(21,21);
-    display.print("Type handler...");
+    display.fillRect (20,8,80,56,SH110X_BLACK);
+    display.drawRect (20,8,80,56,SH110X_WHITE);
+    display.setFont(&TomThumb);
+    display.setTextColor(SH110X_WHITE);
+
+    for(uint i=0; i < NUM_TYPE_CODES; i++) {
+      display.setCursor(40, 14 + i*6);
+      display.print(typeCodes[i].typeCodeName);
+      if(i == textCursorPos) {
+        if(toggle > 0) {
+          display.setTextColor(SH110X_WHITE);
+          display.setCursor(35, 14 + i*6);
+          display.print(">");
+        }
+        else {
+          display.setTextColor(SH110X_BLACK);
+          display.setCursor(35, 14 + i*6);
+          display.print(">");
+          display.setTextColor(SH110X_WHITE);
+        }
+      }
+    }
+
+    display.setFont(); 
+    display.setTextColor(SH110X_WHITE);
   }
   else
   if(systemSubMode == SUBMODE_2_NAME) {
@@ -995,9 +1011,28 @@ void handleControlStatus() {
         if(getActiveKnob(5) == KNOB_CONFIG_TYPECMD_HIGHLIGHTED) { // had the Type spinner highlighted
           systemSubMode = SUBMODE_2_TYPE; // go into the knob config type update modal window
           bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to current state so we don't loop
+          textCursorPos = knobConfigurations[configKnobID].typecode;
           return;
         }
       }
+    }
+  }
+
+  if(systemMode == MODE_CONFIG) { // we're in CONFIG mode
+    if(systemSubMode == SUBMODE_2_TYPE) { // we're inside the TYPE modal window
+      if(!bPrevEncoderBtn && bEncoderBtn) {  // the user depressed the encoder button
+          systemSubMode = SUBMODE_2; // go back to the knob config screen
+          bPrevEncoderBtn = bEncoderBtn; // set the encoder previous state to current state so we don't loop
+          return;
+      }
+    }
+  }
+
+  if(systemMode == MODE_CONFIG) {  // if we're inside Config mode
+    if(systemSubMode == SUBMODE_2_TYPE) {  // and we're inside the Type model dialog
+      knobConfigurations[configKnobID].typecode = getActiveKnob(NUM_TYPE_CODES);  // set the typecode according to the encoder
+      textCursorPos = knobConfigurations[configKnobID].typecode;
+      return;
     }
   }
 
@@ -1015,7 +1050,7 @@ void handleControlStatus() {
           textCursorPos--;      // go left
         else 
           textCursorPos = 14; // wrap around
-        encoderKnob.write(AsciiToEncoder(knobConfigurations[configKnobID].name[textCursorPos]));
+        encoderKnob.write(AsciiToEncoder(knobConfigurations[configKnobID].name[textCursorPos])); // set the encoder to be match the next letter so it doesn't change it arbitrarily
         lastEncoderPosition = 0;
         delay(250);
         return;
@@ -1097,7 +1132,7 @@ void handleDisplays() {
   else { // RUNNING MODE
     drawRunningScreen();
     setLEDs(0b00000000);
-  }
+  } 
   delay(10);
 }
 
