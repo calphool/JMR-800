@@ -95,6 +95,10 @@ The other tweaks that the vecoven upgrade made to my firmware on my synth still 
 manuals for the vecoven upgrade really carefully, because it's pretty easy to get lost in the menus.  Maybe I could implement a "notepad" in the 
 OLED screen of the JMR800 so it can remind me of stuff for the Vecoven upgrade.
 
+One thing that I noticed that I'm going to have to deal with is the fact that not all the pots return the full range from 0 - 127 when sent through the 
+ADC.  They came in a big bag from Aliexpress, so they're probably pretty low quality.  I'm going to need to implement some way to measure their min and 
+max values, probably in the config mode, and then scale the pot value for each pot in software.
+
 ## License
 
 This project is released under the MIT License.
