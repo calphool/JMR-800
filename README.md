@@ -78,6 +78,23 @@ board, so I'm pretty sure the code for interacting with the synth will work.
 I may eventually implement some kind of "preset mode" that allows you to scroll through a given configuration of knobs, select it, and it would play 
 all 56 knobs into the synthesizer.  This may be a submenu of the Run mode.  One step at a time of course...
 
+May 5, 2025
+
+***It's alive***!  I got the first fully functional code put together and just did about 15 minutes of testing.  It definitely works.  Though there's 
+plenty to tweak.  Right now it's ignoring the parameter type and just sending values from 0 - 127, which does work, but it causes the screen to flicker 
+on the synth for the parameters that only have a few set values.  I'm also wondering about how to manage noise from the potentiometers.  Although I 
+used a smoothing algorithm, which does make them a lot less noisy, you still get odd little blips from time to time, and since they take whatever 
+value the knob is at at the time, if you've just changed patches it can make a dramatic change to the sound.  I wonder if I should implement a 
+kind of "lock / unlock" with one of the switches.  I could use green for "I'm unlocked and sending data to the synth" vs red for "I'm currently 
+locked and not sending anything to the synth."
+
+Lots and lots of small tweaks to work on now, but at least it's working.  The PWM mod that I installed from https://www.vecoven.com/superjx/styled/pwm.html
+is pretty cool, especially with knobs that tweak its behavior in real time.
+
+The other tweaks that the vecoven upgrade made to my firmware on my synth still takes some getting used to.  I'm going to have to read through the 
+manuals for the vecoven upgrade really carefully, because it's pretty easy to get lost in the menus.  Maybe I could implement a "notepad" in the 
+OLED screen of the JMR800 so it can remind me of stuff for the Vecoven upgrade.
+
 ## License
 
 This project is released under the MIT License.
