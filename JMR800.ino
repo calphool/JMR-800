@@ -15,12 +15,6 @@ Adafruit_SH1106G display = Adafruit_SH1106G(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, 
                                                                                              // SDA = 18, SCL = 19
 ADC adc;
 
-// Console config
-#define CHAR_WIDTH 6
-#define CHAR_HEIGHT 8
-#define MAX_COLS (SCREEN_WIDTH / CHAR_WIDTH)     // 21
-#define MAX_ROWS (SCREEN_HEIGHT / CHAR_HEIGHT)   // 8
-#define BUFFER_ROWS 64                           // Scrollback buffer depth
 
 // LED pattern buffer
 uint8_t ledPattern = 0b00000000;
@@ -68,6 +62,8 @@ const uint8_t buttonPins[NUM_BUTTONS] = {
   PUSH_BTN_SW4_PIN
 };
 
+
+// TYPE related definitions and structures
 #define NUM_TYPE_CODES 9
 
 #define TYPE_CODE_RANGE 0
@@ -87,6 +83,8 @@ typedef struct {
 typeCode;
 
 typeCode typeCodes[NUM_TYPE_CODES];
+
+
 
 // system modes
 #define MODE_TEST 0
@@ -166,6 +164,8 @@ uint textCursorPos = 0;
 // active knob for configuration screen
 long configKnobID = -1;
 
+
+// Knob configuration related defines and structures
 #define KNOB_CONFIG_NAME_HIGHLIGHTED 0
 #define KNOB_CONFIG_CMD_HIGHLIGHTED 1
 #define KNOB_CONFIG_TYPECMD_HIGHLIGHTED 2
@@ -180,12 +180,19 @@ typedef struct {
 } knobConfig;
 
 // array of knob configurations
-knobConfig knobConfigurations[56];
+#define NUM_KNOBS 56
+knobConfig knobConfigurations[NUM_KNOBS];
+knobConfig knobConfigurations_bkup[NUM_KNOBS];
 knobConfig lastKnobConfig;
 
 // small text buffer used in various places, mostly for text buffers
 char buffer[25];
 
+
+// check if the knobconfiguration has changed at this location
+bool knobChanged(int i) {
+  return memcmp(&knobConfigurations[i], &knobConfigurations_bkup[i], sizeof(knobConfig)) != 0;
+}
 
 // Cycles through 0b00 → 0b10 → 0b01 → 0b00 (off → left → right → off)
 uint8_t cycleLedState(uint8_t current) {
@@ -269,7 +276,12 @@ void setLEDs(uint8_t data) {
    |  sendParameter -- code that sends data to synthesizer      |
    -------------------------------------------------------------- */
 void sendParameter(uint8_t paramID, uint8_t value) {
-  while (bitIndex != -1);  // Wait until previous transfer is complete
+  long start = millis();
+  while (bitIndex != -1 && (millis() - start < 500) );  // Wait until previous transfer is complete
+  if(millis() - start >= 500) {
+    log("problem waiting for bitIndex in sendParameter()");
+    return;
+  }
 
   noInterrupts();
   sendBuffer = ((uint16_t)paramID << 8) | value;
@@ -334,7 +346,7 @@ void gatherControlSettings() {
 
     if (buttonStates[i] && !prevButtonStates[i]) {
       // Rising edge: button just pressed
-      log("button " + String(i + 1));
+      //log("button " + String(i + 1));
 
       uint8_t shift = (3 - i) * 2; // Maps button 0 to bits 6-7, 1 to 4-5, etc.
       uint8_t mask = 0b11 << shift;
@@ -397,6 +409,9 @@ void drawKnobArrow(int x, int y, int deg) {
 }
 
 
+/* -------------------------------------------------------------------------
+   |  getActiveKnob() - returns the active knob modded by the value passed |
+   ------------------------------------------------------------------------- */
 long getActiveKnob(long divisor) {
     long i = (lastEncoderPosition>>2) % divisor; 
     if(i < 0)
@@ -407,6 +422,10 @@ long getActiveKnob(long divisor) {
     return i;
 }
 
+
+/* .-----------------------------------------------------------------------------------------------------.
+   |  drawKnob() - draws a knob at a given x, y location with a given i value from 0 - 255 for the arrow |
+   '-----------------------------------------------------------------------------------------------------' */
 void drawKnob(int knobid, int x, int y, int i) {
   display.fillRect(x+2, y+1, 6, 4, SH110X_WHITE);
   display.drawLine(x+3, y, x+6, y, SH110X_WHITE);
@@ -415,7 +434,7 @@ void drawKnob(int knobid, int x, int y, int i) {
   display.drawLine(x+8, y+2, x+8, y+3, SH110X_WHITE);
 
   if(systemMode == MODE_CONFIG) {
-    if(getActiveKnob(56) == knobid) {
+    if(getActiveKnob(NUM_KNOBS) == knobid) {
       toggle = -toggle;
       if(toggle > 0) {
           display.fillRect(x+2, y+1, 6, 4, SH110X_BLACK);
@@ -437,6 +456,9 @@ void drawKnob(int knobid, int x, int y, int i) {
   }
 }
 
+/* .-------------------------------------------------------------------------------------------------------------.
+   |  drawButton() - Draws a push button at a given x, y position, with the LEDs drawn and whether its depressed |
+   '-------------------------------------------------------------------------------------------------------------' */
 void drawButton(int x, int y, bool red, bool green, uint8_t depressed) {
   display.fillRect(x+1, y, 8, 6, SH110X_WHITE);
   display.drawLine(x+2, y+2, x+7, y+2, SH110X_BLACK);
@@ -457,12 +479,40 @@ uint knobXformer[] = {
  48,49,50,51,52,53,54,55
 };
 
+
+/* .---------------------------------------------------------------------------------------------------------------.
+   |  getKnobValue() - returns the 0-255 value of a given potentiometer (translates wiring issues through Xformer) |
+   '---------------------------------------------------------------------------------------------------------------' */
 inline uint getKnobValue(uint knobIX) {
   knobIX = knobXformer[knobIX];              // transform this index (necessary because of wiring) 
   uint mux = knobIX >> 4;
   uint mux_ix = knobIX & 0x0F;
 
   return 255-AnalogValues[mux_ix][mux];
+}
+
+bool knobValueChanged(uint knobIX) {
+  knobIX = knobXformer[knobIX];              // transform this index (necessary because of wiring) 
+  uint mux = knobIX >> 4;
+  uint mux_ix = knobIX & 0x0F;
+
+/*
+  if(knobIX == 0) {
+    log(String(AnalogValues[mux_ix][mux]) + " / " + oldAnalogValues[mux_ix][mux]);
+  }
+*/
+  if(AnalogValues[mux_ix][mux] == oldAnalogValues[mux_ix][mux])
+    return false;
+
+  return true;
+}
+
+uint knobValueAt(uint knobIX) {
+  knobIX = knobXformer[knobIX];              // transform this index (necessary because of wiring) 
+  uint mux = knobIX >> 4;
+  uint mux_ix = knobIX & 0x0F;
+
+  return AnalogValues[mux_ix][mux] >> 1; // 0 - 127 returned value
 }
 
 /* --------------------------------------------------------------
@@ -737,34 +787,88 @@ void drawConfigScreen() {
   }
 }
 
+static uint lastChangedKnob = 0;
 void drawRunningScreen() {
+  if(millis() - lastdrawTestScreen < 33) 
+    return;
+
+  lastdrawTestScreen = millis();
+
   display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
-  display.setCursor(0,0);
-  display.print("Run screen here");
+  display.setTextColor(SH110X_WHITE);
+  //display.setCursor(20,10);
+  //display.print("Running...");
+  if(millis() < 10000) {
+    display.setCursor(20,10);
+    display.print("Booting...");
+    display.display();
+    return;
+  }
+
+  display.setCursor(20,20);
+  boolean bOneChanged = false;
+  for(uint i = 0; i < NUM_KNOBS; i++) {
+    if(knobValueChanged(i) && !bOneChanged) {
+        bOneChanged = true;
+        lastChangedKnob = i;
+        display.print(knobConfigurations[i].name);
+        display.setCursor(20,30);
+        display.print(typeCodes[knobConfigurations[i].typecode].typeCodeName);
+        display.setCursor(20,40);
+        display.print(knobValueAt(i));
+    }
+  }
+
+  if(bOneChanged == false) {
+        display.print(knobConfigurations[lastChangedKnob].name);
+        display.setCursor(20,30);
+        display.print(typeCodes[knobConfigurations[lastChangedKnob].typecode].typeCodeName);
+        display.setCursor(20,40);
+        display.print(knobValueAt(lastChangedKnob));
+  }
+
   display.display();
 }
 
+
+
+/* .-------------------------------------------------------------------.
+   |  saveKnobs() - saves knob settings to EEPROM if they have changed |
+   '-------------------------------------------------------------------' */
 void saveKnobs() {
-  for (int i = 0; i < 56; i++) {
+  for (int i = 0; i < NUM_KNOBS; i++) {
     while(strlen(knobConfigurations[i].name) < 14)
       strcat(knobConfigurations[i].name," ");
     int addr = i * sizeof(knobConfig);
-    EEPROM.put(addr, knobConfigurations[i]);
+
+    if(knobChanged(i)) { // optimization that reduces wear on EEPROM
+      EEPROM.put(addr, knobConfigurations[i]);
+      //log("knob changed:     " + String(i));
+    }
+    else {
+      //log("knob not changed: " + String(i));
+    }
   }
+  memcpy(knobConfigurations_bkup, knobConfigurations, sizeof(knobConfigurations));
 }
 
+/* .------------------------------------------------------------.
+   |  loadKnobs() - loads knob settings from EEPROM             |
+   '------------------------------------------------------------' */
 void loadKnobs() {
-  for (int i = 0; i < 56; i++) {
+  for (int i = 0; i < NUM_KNOBS; i++) {
     int addr = i * sizeof(knobConfig);
     EEPROM.get(addr, knobConfigurations[i]);
     while(strlen(knobConfigurations[i].name) < 14)
       strcat(knobConfigurations[i].name," ");
   }
+
+  memcpy(knobConfigurations_bkup, knobConfigurations, sizeof(knobConfigurations));
 }
 
-/* --------------------------------------------------------------
+/* .------------------------------------------------------------.
    |  Initialization                                            |
-   -------------------------------------------------------------- */
+   '------------------------------------------------------------' */
 void setup() {
   Serial.begin(9600);
   EEPROM.begin();
@@ -789,7 +893,7 @@ void setup() {
   typeCodes[TYPE_CODE_2_1_OFF].cd = TYPE_CODE_2_1_OFF;
   strcpy(typeCodes[TYPE_CODE_2_1_OFF].typeCodeName, "2-1-Off");
 
-  systemMode = MODE_TEST;
+  systemMode = MODE_RUNNING;
   systemSubMode = SUBMODE_1;
 
   pinMode(PUSH_BTN_SW4_PIN, INPUT_PULLUP);
@@ -941,21 +1045,36 @@ void setup() {
   log("Initialized.");
 }
 
+
+/* .----------------------------------------------------------------------------------------------------.
+   |  AsciiToEncoder() routine that translates an ASCII value to the appropriate encoder value          |
+   '----------------------------------------------------------------------------------------------------' */
 int AsciiToEncoder(char c) {
   int v = ((((int)c) - 65) * 4) + 132;
   return v;
 }
 
 
+/* .----------------------------------------------------------------------------------------------------.
+   |  handleControlStatus() loop - gathers up control values and set status state machine based on them |
+   '----------------------------------------------------------------------------------------------------' */
 void handleControlStatus() {
   gatherControlSettings(); // sweep all the controls, store their state in a buffer
+
+  if(systemMode == MODE_RUNNING) {
+    for(uint i = 0; i < NUM_KNOBS; i++) {
+      if(knobValueChanged(i) && millis() > 10000) {
+        sendParameter(knobConfigurations[i].cmdbyte, knobValueAt(i));
+      }
+    }
+  }
   
   if(systemMode == MODE_CONFIG) {  // if we're in Config mode
     if(systemSubMode == SUBMODE_1) {  // and we're in the knob selection screen
       if(!bPrevEncoderBtn && bEncoderBtn) {  // and the user clicked on encoder button
         bPrevEncoderBtn = bEncoderBtn;  // set the encoder previous state to the current state so we don't loop
         systemSubMode = SUBMODE_2;     // set the sub mode to the knob configuration screen
-        configKnobID = getActiveKnob(56);   // this is the knob they clicked on
+        configKnobID = getActiveKnob(NUM_KNOBS);   // this is the knob they clicked on
         memcpy(&lastKnobConfig, &knobConfigurations[configKnobID], sizeof(lastKnobConfig)); // make a backup of this knob's settings in case they click cancel
         return;
       }
@@ -1120,6 +1239,9 @@ void handleControlStatus() {
 }
 
 
+/* .---------------------------------------------------------------------------------.
+   |  handleDisplays() loop - loops through appropriate display screen based on mode |
+   '---------------------------------------------------------------------------------' */
 void handleDisplays() {
   if(systemMode == MODE_TEST) {
     drawTestScreen();
@@ -1136,9 +1258,9 @@ void handleDisplays() {
   delay(10);
 }
 
-/* --------------------------------------------------------------
+/* .------------------------------------------------------------.
    |  Main loop                                                 |
-   -------------------------------------------------------------- */
+   '------------------------------------------------------------' */
 void loop() {
   handleControlStatus();
   handleDisplays();
