@@ -7,6 +7,7 @@
 #include <Encoder.h>
 #include <EEPROM.h>
 #include <Fonts/TomThumb.h>
+#include <vector>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -84,6 +85,19 @@ typeCode;
 
 typeCode typeCodes[NUM_TYPE_CODES];
 
+
+// vector for de-duplicating messages sent to synthesizer
+struct SentCommand {
+  uint8_t paramID;
+  uint8_t value;
+  unsigned long timestamp;
+};
+
+std::vector<SentCommand> recentCommands;
+const unsigned long COMMAND_TIMEOUT = 250;  // milliseconds
+
+// counter used to send all knob values to synth at the same time 
+uint parmCtr;
 
 
 // system modes
@@ -276,9 +290,31 @@ void setLEDs(uint8_t data) {
    |  sendParameter -- code that sends data to synthesizer      |
    -------------------------------------------------------------- */
 void sendParameter(uint8_t paramID, uint8_t value) {
-  long start = millis();
-  while (bitIndex != -1 && (millis() - start < 500) );  // Wait until previous transfer is complete
-  if(millis() - start >= 500) {
+  unsigned long now = millis();
+
+  // Remove expired entries
+  recentCommands.erase(
+    std::remove_if(recentCommands.begin(), recentCommands.end(),
+      [now](const SentCommand& cmd) {
+        return now - cmd.timestamp > COMMAND_TIMEOUT;
+      }),
+    recentCommands.end()
+  );
+
+  // Check for duplicate
+  for (const auto& cmd : recentCommands) {
+    if (cmd.paramID == paramID && cmd.value == value) {
+      return;  // Duplicate within timeout window; do not resend
+    }
+  }
+
+  // Record this command
+  recentCommands.push_back({paramID, value, now});
+
+
+
+  while (bitIndex != -1 && (millis() - now < 500) );  // Wait until previous transfer is complete
+  if(millis() - now >= 500) {
     log("problem waiting for bitIndex in sendParameter()");
     return;
   }
@@ -315,23 +351,6 @@ void onPG800ClockFall() {
     delayMicroseconds(10);
     digitalWrite(DATA_OUT_PIN, LOW);           // Idle state
   }
-}
-
-/* --------------------------------------------------------------
-   |  sendPG800Message -- Routine that sends message and shows  |
-   |  what the parameter is on the screen                       |
-   -------------------------------------------------------------- */
-void sendPG800Message(uint8_t parmIX, uint8_t value) {
-    display.fillRect(0, 0, SCREEN_WIDTH, 12, SH110X_BLACK);
-    display.setCursor(0,0);
-    display.printf("(%d %d)", parmIX, value);
-    display.fillRect(0, 12, SCREEN_WIDTH, 12, SH110X_BLACK);
-    display.setCursor(0,12);
-    display.printf("%s %02X", 
-        jx8p_param_names[paramIndexTable[parmIX]], 
-        (uint8_t) (value));
-    sendParameter((uint8_t) (paramIndexTable[parmIX]), (uint8_t) (value));
-    display.display();
 }
 
 /* ---------------------------------------------------------------
@@ -827,6 +846,10 @@ void drawRunningScreen() {
         display.print(knobValueAt(lastChangedKnob));
   }
 
+  if(systemSubMode == SUBMODE_2) {
+    display.drawLine(4, 60, 4 + (parmCtr*2), 60, SH110X_WHITE);
+  }
+
   display.display();
 }
 
@@ -1056,6 +1079,61 @@ int AsciiToEncoder(char c) {
 
 
 /* .----------------------------------------------------------------------------------------------------.
+   |  sendParameterToSynth() code to figure out what to send based on knob type                         |
+   '----------------------------------------------------------------------------------------------------' */
+void sendParameterToSynth(uint i) {
+
+    uint kv = knobValueAt(i);
+    if(knobConfigurations[i].typecode == TYPE_CODE_0_TO_10 || knobConfigurations[i].typecode == TYPE_CODE_OCTAVE) {
+      sendParameter(knobConfigurations[i].cmdbyte, knobValueAt(i));
+      return;
+    }
+
+    if(knobConfigurations[i].typecode == TYPE_CODE_LFO_WAVE_FORM || knobConfigurations[i].typecode == TYPE_CODE_2_1_OFF) {
+      if(kv < 32)
+        sendParameter(knobConfigurations[i].cmdbyte, 16); // Random      , Off      
+      else
+      if(kv < 64)
+        sendParameter(knobConfigurations[i].cmdbyte, 48); // Square Wave , 1
+      else
+        sendParameter(knobConfigurations[i].cmdbyte, 96); // Triangle    , 2      
+
+      return;
+    }
+
+    if(knobConfigurations[i].typecode == TYPE_CODE_ENV2_GATE) {
+      if(kv < 64)
+        sendParameter(knobConfigurations[i].cmdbyte, 32); // Gate
+      else
+        sendParameter(knobConfigurations[i].cmdbyte, 96); // Normal
+
+      return;
+    }
+  
+    if(knobConfigurations[i].typecode == TYPE_CODE_RANGE || knobConfigurations[i].typecode == TYPE_CODE_WAVE_FORM || 
+       knobConfigurations[i].typecode == TYPE_CODE_3_2_1_OFF || knobConfigurations[i].typecode == TYPE_CODE_MODE) {
+        if(kv < 32) {
+          sendParameter(knobConfigurations[i].cmdbyte, 16); // range 16', Noise, OFF, Env-2-Inverted
+          return;
+        }
+        else
+        if(kv < 64) {
+          sendParameter(knobConfigurations[i].cmdbyte, 48); // range 8', Sawtooth, 1, Env-2-Normal
+          return;
+        }
+        else
+        if(kv < 96) {
+          sendParameter(knobConfigurations[i].cmdbyte, 80); // range 4', Pulse, 2, Env-1-Inverted
+          return;
+        }
+
+        sendParameter(knobConfigurations[i].cmdbyte, 112); // range 2', Square, 3, Env-1-Normal
+        return;
+    }
+
+}
+
+/* .----------------------------------------------------------------------------------------------------.
    |  handleControlStatus() loop - gathers up control values and set status state machine based on them |
    '----------------------------------------------------------------------------------------------------' */
 void handleControlStatus() {
@@ -1063,8 +1141,8 @@ void handleControlStatus() {
 
   if(systemMode == MODE_RUNNING) {
     for(uint i = 0; i < NUM_KNOBS; i++) {
-      if(knobValueChanged(i) && millis() > 10000) {
-        sendParameter(knobConfigurations[i].cmdbyte, knobValueAt(i));
+      if(knobValueChanged(i) && millis() > 10000) { // we start sending parameters after 10 seconds (allows knob leveling to settle)
+        sendParameterToSynth(i);
       }
     }
   }
@@ -1217,6 +1295,20 @@ void handleControlStatus() {
       knobConfigurations[configKnobID].name[textCursorPos] = getActiveKnob(94) + 32;  // set the current text position of the name to whatever the encoder sets it to
       return;
     }
+  }
+
+  if(systemMode == MODE_RUNNING && buttonStates[0]) { // button 1 pressed while running, send all current parameters
+    systemSubMode = SUBMODE_2;
+    parmCtr = 0;
+    delay(500);
+  }
+  else 
+  if(systemMode == MODE_RUNNING && systemSubMode == SUBMODE_2) {
+    parmCtr++;
+    if(parmCtr < NUM_KNOBS)
+      sendParameterToSynth(parmCtr);
+    else
+      systemSubMode = SUBMODE_1;
   }
 
 
