@@ -184,6 +184,8 @@ uint textCursorPos = 0;
 // active knob for configuration screen
 long configKnobID = -1;
 
+uint8_t activeKnob = 0;
+
 
 // Knob configuration related defines and structures
 #define KNOB_CONFIG_NAME_HIGHLIGHTED 0
@@ -270,7 +272,7 @@ void gatherPotentiometerValues() {
         raw = raw >> 2;          // (1024 / 4 = 256)
         raw = (AnalogValues[addr][muxCtr] * 7 + raw) >> 3;  // smoothed value (multiplies original value by 7 then adds new, then averages)
         AnalogValues[addr][muxCtr] = raw;
-        if(iGatherCtr % 4 == 0) // every 1/5 second, store a copy of the current AnalogValues()
+        if(iGatherCtr % 10 == 0) // store a copy of the current AnalogValues() periodically
             oldAnalogValues[addr][muxCtr] = AnalogValues[addr][muxCtr];
       }
       digitalWrite(enablePins[muxCtr], HIGH); // disable this mux
@@ -534,20 +536,23 @@ inline uint getKnobValue(uint knobIX) {
 }
 
 bool knobValueChanged(uint knobIX) {
-  knobIX = knobXformer[knobIX];              // transform this index (necessary because of wiring) 
-  uint mux = knobIX >> 4;
-  uint mux_ix = knobIX & 0x0F;
+    knobIX = knobXformer[knobIX];  // Transform this index (necessary because of wiring) 
+    uint mux = knobIX >> 4;
+    uint mux_ix = knobIX & 0x0F;
 
-/*
-  if(knobIX == 0) {
-    log(String(AnalogValues[mux_ix][mux]) + " / " + oldAnalogValues[mux_ix][mux]);
-  }
-*/
-  if(AnalogValues[mux_ix][mux] == oldAnalogValues[mux_ix][mux])
-    return false;
+    uint16_t currentValue = AnalogValues[mux_ix][mux];
+    uint16_t oldValue = oldAnalogValues[mux_ix][mux];
 
-  return true;
+    // Apply hysteresis (ignore small changes)
+    int delta = (int)currentValue - (int)oldValue;
+    if (abs(delta) < 4)  // Adjust the threshold as needed (3-10 is typical)
+        return false;
+
+    // Update the stored value if the change is significant
+    oldAnalogValues[mux_ix][mux] = currentValue;
+    return true;
 }
+
 
 uint knobValueAt(uint knobIX) {
   knobIX = knobXformer[knobIX];              // transform this index (necessary because of wiring) 
@@ -829,7 +834,6 @@ void drawConfigScreen() {
   }
 }
 
-static uint lastChangedKnob = 0;
 void drawRunningScreen() {
   if(millis() - lastdrawTestScreen < 33) 
     return;
@@ -854,26 +858,11 @@ void drawRunningScreen() {
   }
 
   display.setCursor(20,20);
-  boolean bOneChanged = false;
-  for(uint i = 0; i < NUM_KNOBS; i++) {
-    if(knobValueChanged(i) && !bOneChanged) {
-        bOneChanged = true;
-        lastChangedKnob = i;
-        display.print(knobConfigurations[i].name);
-        display.setCursor(20,30);
-        display.print(typeCodes[knobConfigurations[i].typecode].typeCodeName);
-        display.setCursor(20,40);
-        display.print(knobValueAt(i));
-    }
-  }
-
-  if(bOneChanged == false) {
-        display.print(knobConfigurations[lastChangedKnob].name);
-        display.setCursor(20,30);
-        display.print(typeCodes[knobConfigurations[lastChangedKnob].typecode].typeCodeName);
-        display.setCursor(20,40);
-        display.print(knobValueAt(lastChangedKnob));
-  }
+  display.print(knobConfigurations[activeKnob].name);
+  display.setCursor(20,30);
+  display.print(typeCodes[knobConfigurations[activeKnob].typecode].typeCodeName);
+  display.setCursor(20,40);
+  display.print(knobValueAt(activeKnob));
 
   if(systemSubMode == SUBMODE_2 || systemSubMode == SUBMODE_3) {
     display.drawLine(4, 60, 4 + (parmCtr*2), 60, SH110X_WHITE);
@@ -1235,6 +1224,7 @@ void handleControlStatus() {
     for(uint i = 0; i < NUM_KNOBS; i++) {
       if(knobValueChanged(i) && millis() > 12000) { // we start sending parameters after 10 seconds (allows knob leveling to settle)
         sendParameterToSynth(i);
+        activeKnob = i;
       }
     }
   }
