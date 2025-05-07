@@ -99,11 +99,15 @@ const unsigned long COMMAND_TIMEOUT = 250;  // milliseconds
 // counter used to send all knob values to synth at the same time 
 uint parmCtr;
 
+uint8_t cmdValue = 0;
+uint8_t byteValue = 0;
+
 
 // system modes
 #define MODE_TEST 0
 #define MODE_CONFIG 1
 #define MODE_RUNNING 2
+#define MODE_RAW_OUTPUT 3
 
 // Config knob selector screen
 #define SUBMODE_1 0
@@ -119,6 +123,8 @@ uint parmCtr;
 
 // Config knob update Type
 #define SUBMODE_2_TYPE 4
+
+#define SUBMODE_3 5
 
 uint8_t systemMode;
 uint8_t systemSubMode;
@@ -199,9 +205,25 @@ knobConfig knobConfigurations[NUM_KNOBS];
 knobConfig knobConfigurations_bkup[NUM_KNOBS];
 knobConfig lastKnobConfig;
 
+typedef struct {
+  uint8_t cmd;
+  uint8_t val;
+}
+twoBytes;
+
+twoBytes preset[NUM_KNOBS];
+
+
 // small text buffer used in various places, mostly for text buffers
 char buffer[25];
 
+
+// sends next command from given preset
+void sendNextPresetParmToSynth(uint8_t presetNumber, uint8_t parmIX) {
+  if(parmIX >= NUM_KNOBS)
+    return;
+  sendParameter(preset[parmIX].cmd, preset[parmIX].val);
+}
 
 // check if the knobconfiguration has changed at this location
 bool knobChanged(int i) {
@@ -360,13 +382,15 @@ void onPG800ClockFall() {
 void gatherControlSettings() {
   gatherPotentiometerValues();
 
+
+  for(int i = 0; i < NUM_BUTTONS; i++) {
+    prevButtonStates[i] = buttonStates[i];
+  }
+
   for (int i = 0; i < NUM_BUTTONS; i++) {
     buttonStates[i] = !digitalRead(buttonPins[i]); // Active low
-
+    /*
     if (buttonStates[i] && !prevButtonStates[i]) {
-      // Rising edge: button just pressed
-      //log("button " + String(i + 1));
-
       uint8_t shift = (3 - i) * 2; // Maps button 0 to bits 6-7, 1 to 4-5, etc.
       uint8_t mask = 0b11 << shift;
       uint8_t current = (ledPattern & mask) >> shift;
@@ -374,8 +398,7 @@ void gatherControlSettings() {
 
       ledPattern = (ledPattern & ~mask) | (next << shift);
     }
-
-    prevButtonStates[i] = buttonStates[i]; // Update for next check
+    */
   }
 
   bPrevEncoderBtn = bEncoderBtn;
@@ -817,8 +840,14 @@ void drawRunningScreen() {
   display.setTextColor(SH110X_WHITE);
   //display.setCursor(20,10);
   //display.print("Running...");
-  if(millis() < 10000) {
-    display.setCursor(20,10);
+  if(millis() < 12000) {
+    display.setCursor(10,0);
+    display.print("JMR-800 Controller");
+    display.setCursor(10,20);
+    display.print(__DATE__); 
+    display.setCursor(10,30);
+    display.print(__TIME__);;
+    display.setCursor(10,50);
     display.print("Booting...");
     display.display();
     return;
@@ -846,7 +875,7 @@ void drawRunningScreen() {
         display.print(knobValueAt(lastChangedKnob));
   }
 
-  if(systemSubMode == SUBMODE_2) {
+  if(systemSubMode == SUBMODE_2 || systemSubMode == SUBMODE_3) {
     display.drawLine(4, 60, 4 + (parmCtr*2), 60, SH110X_WHITE);
   }
 
@@ -889,6 +918,7 @@ void loadKnobs() {
   memcpy(knobConfigurations_bkup, knobConfigurations, sizeof(knobConfigurations));
 }
 
+
 /* .------------------------------------------------------------.
    |  Initialization                                            |
    '------------------------------------------------------------' */
@@ -915,6 +945,65 @@ void setup() {
   strcpy(typeCodes[TYPE_CODE_LFO_WAVE_FORM].typeCodeName, "LFO Wave Form");
   typeCodes[TYPE_CODE_2_1_OFF].cd = TYPE_CODE_2_1_OFF;
   strcpy(typeCodes[TYPE_CODE_2_1_OFF].typeCodeName, "2-1-Off");
+
+  preset[ 0].cmd = 0x80; preset[ 0].val = 80; // DCO1 Range
+  preset[ 1].cmd = 0x81; preset[ 1].val = 112;// DCO1 Waveform
+  preset[ 2].cmd = 0x82; preset[ 2].val = 64; // DCO1 Tune
+  preset[ 3].cmd = 0x83; preset[ 3].val = 0;  // DCO1 LFO Depth
+  preset[ 4].cmd = 0x84; preset[ 4].val = 0;  // DCO1 Env Depth
+  preset[ 5].cmd = 0x85; preset[ 5].val = 80; // DCO2 Range
+  preset[ 6].cmd = 0x86; preset[ 6].val = 112;// DCO2 Waveform
+  preset[ 7].cmd = 0x87; preset[ 7].val = 0;  // DCO XMOD
+  preset[ 8].cmd = 0x88; preset[ 8].val = 64; // DCO2 Tune
+  preset[ 9].cmd = 0x89; preset[ 9].val = 58; // DCO2 Fine Tune
+  preset[10].cmd = 0x8A; preset[10].val = 0; // DCO2 LFO Depth
+  preset[11].cmd = 0x8B; preset[11].val = 0; // DCO2 Env Depth
+  preset[12].cmd = 0x8F; preset[12].val = 0; // DCO Dynamics
+  preset[13].cmd = 0x90; preset[13].val = 0; // DCO EG Mode
+  preset[14].cmd = 0x91; preset[14].val = 127; // Mix DCO1
+  preset[15].cmd = 0x92; preset[15].val = 127; // Mix DCO2
+  preset[16].cmd = 0x93; preset[16].val = 127; // Mix Env
+  preset[17].cmd = 0x94; preset[17].val = 0; // Mix Dynamics
+  preset[18].cmd = 0x95; preset[18].val = 0; // Mix EG Mode
+  preset[19].cmd = 0x96; preset[19].val = 0; // VCF HPF
+  preset[20].cmd = 0x97; preset[20].val = 55;// VCF Freq
+  preset[21].cmd = 0x98; preset[21].val = 0; // VCF Resonance
+  preset[22].cmd = 0x99; preset[22].val = 0; // VCF LFO
+  preset[23].cmd = 0x9A; preset[23].val = 107; // VCF Env
+  preset[24].cmd = 0x9B; preset[24].val = 127; // VCF Key
+  preset[25].cmd = 0x9C; preset[25].val = 127; // VCF Dynamics
+  preset[26].cmd = 0x9D; preset[26].val = 127; // VCF EG Mode
+  preset[27].cmd = 0x9E; preset[27].val = 100; // VCA Level
+  preset[28].cmd = 0x9F; preset[28].val = 0; // VCA Dynamics
+  preset[29].cmd = 0xA0; preset[29].val = 0; // Chorus
+  preset[30].cmd = 0xA1; preset[30].val = 64; // LFO Waveform
+  preset[31].cmd = 0xA2; preset[31].val = 0; // LFO Delay
+  preset[32].cmd = 0xA3; preset[32].val = 103; // LFO Rate
+  preset[33].cmd = 0xA4; preset[33].val = 84; // EG Env1 Attk
+  preset[34].cmd = 0xA5; preset[34].val = 79; // EG Env1 Decay
+  preset[35].cmd = 0xA6; preset[35].val = 78; // EG Env1 Sust
+  preset[36].cmd = 0xA7; preset[36].val = 100; // EG Env1 Rel
+  preset[37].cmd = 0xA8; preset[37].val = 0; // EG Env1 Key
+  preset[38].cmd = 0xA9; preset[38].val = 0; // EG Env2 Attk
+  preset[39].cmd = 0xAA; preset[39].val = 15; // EG Env2 Decay
+  preset[40].cmd = 0xAB; preset[40].val = 75; // EG Env2 Sust
+  preset[41].cmd = 0xAC; preset[41].val = 0; // EG Env2 Rel
+  preset[42].cmd = 0xAD; preset[42].val = 0; // EG Env2 Key
+  preset[43].cmd = 0xAF; preset[43].val = 0; // VCA EG Mode
+  preset[44].cmd = 0xB0; preset[44].val = 0; // PMW1 Width
+  preset[45].cmd = 0xB1; preset[45].val = 0; // PWM1 Env
+  preset[46].cmd = 0xB2; preset[46].val = 0; // PMW1 LFO
+  preset[47].cmd = 0xB3; preset[47].val = 0; // PWM2 Width
+  preset[48].cmd = 0xB4; preset[48].val = 0; // PWM2 Env
+  preset[49].cmd = 0xB5; preset[49].val = 0; // PWM2 LFO
+  preset[50].cmd = 0xC4; preset[50].val = 0; // PWM Dyna
+  preset[51].cmd = 0xC6; preset[51].val = 0; // LFO Sync
+  preset[52].cmd = 0xCC; preset[52].val = 0; // PWM Mode
+  preset[53].cmd = 0x80; preset[53].val = 80; // DCO1 Range
+  preset[54].cmd = 0x81; preset[54].val = 112;// DCO1 Waveform
+  preset[55].cmd = 0x82; preset[55].val = 64; // DCO1 Tune
+
+
 
   systemMode = MODE_RUNNING;
   systemSubMode = SUBMODE_1;
@@ -1083,7 +1172,10 @@ int AsciiToEncoder(char c) {
    '----------------------------------------------------------------------------------------------------' */
 void sendParameterToSynth(uint i) {
 
+    /* code to ignore noise and jitter */
     uint kv = knobValueAt(i);
+
+
     if(knobConfigurations[i].typecode == TYPE_CODE_0_TO_10 || knobConfigurations[i].typecode == TYPE_CODE_OCTAVE) {
       sendParameter(knobConfigurations[i].cmdbyte, knobValueAt(i));
       return;
@@ -1141,9 +1233,39 @@ void handleControlStatus() {
 
   if(systemMode == MODE_RUNNING) {
     for(uint i = 0; i < NUM_KNOBS; i++) {
-      if(knobValueChanged(i) && millis() > 10000) { // we start sending parameters after 10 seconds (allows knob leveling to settle)
+      if(knobValueChanged(i) && millis() > 12000) { // we start sending parameters after 10 seconds (allows knob leveling to settle)
         sendParameterToSynth(i);
       }
+    }
+  }
+
+  if(systemMode == MODE_RAW_OUTPUT) {
+    if(buttonStates[0] && !prevButtonStates[0]) {
+        prevButtonStates[0] = buttonStates[0];
+        cmdValue--;
+        delay(100);
+    }
+    else
+    if(buttonStates[1] && !prevButtonStates[1]) {
+      prevButtonStates[1] = buttonStates[1];
+      cmdValue++;
+      delay(100);
+    }
+    else
+    if(buttonStates[2] && !prevButtonStates[2]) {
+      prevButtonStates[2] = buttonStates[2];
+      byteValue--;
+      delay(100);
+    }
+    else
+    if(buttonStates[3] && !prevButtonStates[3]) {
+      prevButtonStates[3] = buttonStates[3];
+      byteValue++;
+      delay(100);
+    }
+    if(!bPrevEncoderBtn && bEncoderBtn) {
+        bPrevEncoderBtn = bEncoderBtn;  // set the encoder previous state to the current state so we don't loop
+        sendParameter(cmdValue, byteValue);
     }
   }
   
@@ -1297,21 +1419,33 @@ void handleControlStatus() {
     }
   }
 
+  if(systemMode == MODE_RUNNING && buttonStates[1]) { // button 2 pressed while running, send preset
+    systemSubMode = SUBMODE_3;
+    parmCtr = 0;
+    delay(500);
+  }
+  else
   if(systemMode == MODE_RUNNING && buttonStates[0]) { // button 1 pressed while running, send all current parameters
     systemSubMode = SUBMODE_2;
     parmCtr = 0;
     delay(500);
   }
   else 
-  if(systemMode == MODE_RUNNING && systemSubMode == SUBMODE_2) {
+  if(systemMode == MODE_RUNNING && systemSubMode == SUBMODE_2) {  // sync all knobs to synth
     parmCtr++;
     if(parmCtr < NUM_KNOBS)
       sendParameterToSynth(parmCtr);
     else
       systemSubMode = SUBMODE_1;
   }
-
-
+  else
+  if(systemMode == MODE_RUNNING && systemSubMode == SUBMODE_3) {  // send preset parameters
+    parmCtr++;
+    if(parmCtr < NUM_KNOBS) 
+      sendNextPresetParmToSynth(0, parmCtr);
+    else
+      systemSubMode = SUBMODE_1;
+  }
 
   if(buttonStates[0] && buttonStates[1]) {  // if top two buttons depressed simultaneously
     if(systemMode == MODE_TEST) { // if we're in TEST mode
@@ -1324,10 +1458,34 @@ void handleControlStatus() {
       delay(500); // pause half a second
     }
     else if (systemMode == MODE_RUNNING) { // if we're in RUN mode
-      systemMode = MODE_TEST; // switch to TEST mode
+      systemMode = MODE_RAW_OUTPUT; // switch to TEST mode
       delay(500); // pause half a second
     }
+    else if (systemMode == MODE_RAW_OUTPUT) {
+      systemMode = MODE_TEST;
+      delay(500);
+    }
   }
+}
+
+void drawRawOutputScreen() {
+    display.setTextColor(SH110X_WHITE);
+    display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
+    display.setCursor(0,0);                                            // position for title
+    display.print("Raw Parameter Sender");                            // title
+
+    display.setCursor(0,30);
+    display.print("B1=Cmd Up/B2=Cmd Down");
+    display.setCursor(0,40);
+    display.print("B3=Byt Up/B4=Byt Down");
+    display.setCursor(0,55);
+    display.print("Press Encoder To Send");
+
+    display.setCursor(12,15);
+    sprintf(buffer, "CMD: %02X  BYTE: %02X", cmdValue, byteValue);
+    display.print(buffer);
+
+    display.display();
 }
 
 
@@ -1341,6 +1499,10 @@ void handleDisplays() {
   }
   else if (systemMode == MODE_CONFIG) {
     drawConfigScreen();
+    setLEDs(0b00000000);
+  }
+  else if (systemMode == MODE_RAW_OUTPUT) {
+    drawRawOutputScreen();
     setLEDs(0b00000000);
   }
   else { // RUNNING MODE
