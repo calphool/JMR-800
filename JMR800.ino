@@ -992,8 +992,6 @@ void setup() {
   preset[54].cmd = 0x81; preset[54].val = 112;// DCO1 Waveform
   preset[55].cmd = 0x82; preset[55].val = 64; // DCO1 Tune
 
-
-
   systemMode = MODE_RUNNING;
   systemSubMode = SUBMODE_1;
 
@@ -1105,9 +1103,9 @@ void setup() {
   strcpy(knobConfigurations[47].name, "PWM2 Width"); knobConfigurations[47].cmdbyte = 0xB3;
   strcpy(knobConfigurations[48].name, "PWM2 Env"); knobConfigurations[48].cmdbyte = 0xB4;
   strcpy(knobConfigurations[49].name, "PWM2 LFO"); knobConfigurations[49].cmdbyte = 0xB5;
-  strcpy(knobConfigurations[50].name, "PWM Dyna"); knobConfigurations[50].cmdbyte = 0xC4;
-  strcpy(knobConfigurations[51].name, "LFO Sync"); knobConfigurations[51].cmdbyte = 0xC6;
-  strcpy(knobConfigurations[52].name, "PWM Mode"); knobConfigurations[52].cmdbyte = 0xCC;
+  strcpy(knobConfigurations[50].name, "PWM Dyna"); knobConfigurations[50].cmdbyte = 0xCE;
+  strcpy(knobConfigurations[51].name, "LFO Sync"); knobConfigurations[51].cmdbyte = 0xD0;
+  strcpy(knobConfigurations[52].name, "PWM Mode"); knobConfigurations[52].cmdbyte = 0xD6;
   strcpy(knobConfigurations[53].name, "DCO1 Range"); knobConfigurations[53].cmdbyte = 0x80;
   strcpy(knobConfigurations[54].name, "DCO1 Waveform"); knobConfigurations[54].cmdbyte = 0x81;
   strcpy(knobConfigurations[55].name, "DCO1 Tune"); knobConfigurations[55].cmdbyte = 0x82;
