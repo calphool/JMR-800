@@ -122,8 +122,6 @@ void drawRunningScreen() {
 
   display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
   display.setTextColor(SH110X_WHITE);
-  //display.setCursor(20,10);
-  //display.print("Running...");
   if(millis() < 12000) {
     display.setCursor(10,0);
     display.print("JMR-800 Controller");

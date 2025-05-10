@@ -6,10 +6,6 @@
 #include "display.h"
 
 
-
-
-
-
 // counter used to send all knob values to synth at the same time 
 uint parmCtr;
 
