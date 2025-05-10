@@ -81,62 +81,73 @@ void setup() {
   typeCodes[TYPE_CODE_2_1_OFF].cd = TYPE_CODE_2_1_OFF;
   strcpy(typeCodes[TYPE_CODE_2_1_OFF].typeCodeName, "2-1-Off");
 
-  preset[ 0].cmd = 0x80; preset[ 0].val = 80; // DCO1 Range
-  preset[ 1].cmd = 0x81; preset[ 1].val = 112;// DCO1 Waveform
-  preset[ 2].cmd = 0x82; preset[ 2].val = 64; // DCO1 Tune
-  preset[ 3].cmd = 0x83; preset[ 3].val = 0;  // DCO1 LFO Depth
-  preset[ 4].cmd = 0x84; preset[ 4].val = 0;  // DCO1 Env Depth
-  preset[ 5].cmd = 0x85; preset[ 5].val = 80; // DCO2 Range
-  preset[ 6].cmd = 0x86; preset[ 6].val = 112;// DCO2 Waveform
-  preset[ 7].cmd = 0x87; preset[ 7].val = 0;  // DCO XMOD
-  preset[ 8].cmd = 0x88; preset[ 8].val = 64; // DCO2 Tune
-  preset[ 9].cmd = 0x89; preset[ 9].val = 58; // DCO2 Fine Tune
-  preset[10].cmd = 0x8A; preset[10].val = 0; // DCO2 LFO Depth
-  preset[11].cmd = 0x8B; preset[11].val = 0; // DCO2 Env Depth
-  preset[12].cmd = 0x8F; preset[12].val = 0; // DCO Dynamics
-  preset[13].cmd = 0x90; preset[13].val = 0; // DCO EG Mode
-  preset[14].cmd = 0x91; preset[14].val = 127; // Mix DCO1
-  preset[15].cmd = 0x92; preset[15].val = 127; // Mix DCO2
-  preset[16].cmd = 0x93; preset[16].val = 127; // Mix Env
-  preset[17].cmd = 0x94; preset[17].val = 0; // Mix Dynamics
-  preset[18].cmd = 0x95; preset[18].val = 0; // Mix EG Mode
-  preset[19].cmd = 0x96; preset[19].val = 0; // VCF HPF
-  preset[20].cmd = 0x97; preset[20].val = 55;// VCF Freq
-  preset[21].cmd = 0x98; preset[21].val = 0; // VCF Resonance
-  preset[22].cmd = 0x99; preset[22].val = 0; // VCF LFO
-  preset[23].cmd = 0x9A; preset[23].val = 107; // VCF Env
-  preset[24].cmd = 0x9B; preset[24].val = 127; // VCF Key
-  preset[25].cmd = 0x9C; preset[25].val = 127; // VCF Dynamics
-  preset[26].cmd = 0x9D; preset[26].val = 127; // VCF EG Mode
-  preset[27].cmd = 0x9E; preset[27].val = 100; // VCA Level
-  preset[28].cmd = 0x9F; preset[28].val = 0; // VCA Dynamics
-  preset[29].cmd = 0xA0; preset[29].val = 0; // Chorus
-  preset[30].cmd = 0xA1; preset[30].val = 64; // LFO Waveform
-  preset[31].cmd = 0xA2; preset[31].val = 0; // LFO Delay
-  preset[32].cmd = 0xA3; preset[32].val = 103; // LFO Rate
-  preset[33].cmd = 0xA4; preset[33].val = 84; // EG Env1 Attk
-  preset[34].cmd = 0xA5; preset[34].val = 79; // EG Env1 Decay
-  preset[35].cmd = 0xA6; preset[35].val = 78; // EG Env1 Sust
-  preset[36].cmd = 0xA7; preset[36].val = 100; // EG Env1 Rel
-  preset[37].cmd = 0xA8; preset[37].val = 0; // EG Env1 Key
-  preset[38].cmd = 0xA9; preset[38].val = 0; // EG Env2 Attk
-  preset[39].cmd = 0xAA; preset[39].val = 15; // EG Env2 Decay
-  preset[40].cmd = 0xAB; preset[40].val = 75; // EG Env2 Sust
-  preset[41].cmd = 0xAC; preset[41].val = 0; // EG Env2 Rel
-  preset[42].cmd = 0xAD; preset[42].val = 0; // EG Env2 Key
-  preset[43].cmd = 0xAF; preset[43].val = 0; // VCA EG Mode
-  preset[44].cmd = 0xB0; preset[44].val = 0; // PMW1 Width
-  preset[45].cmd = 0xB1; preset[45].val = 0; // PWM1 Env
-  preset[46].cmd = 0xB2; preset[46].val = 0; // PMW1 LFO
-  preset[47].cmd = 0xB3; preset[47].val = 0; // PWM2 Width
-  preset[48].cmd = 0xB4; preset[48].val = 0; // PWM2 Env
-  preset[49].cmd = 0xB5; preset[49].val = 0; // PWM2 LFO
-  preset[50].cmd = 0xC4; preset[50].val = 0; // PWM Dyna
-  preset[51].cmd = 0xC6; preset[51].val = 0; // LFO Sync
-  preset[52].cmd = 0xCC; preset[52].val = 0; // PWM Mode
-  preset[53].cmd = 0x80; preset[53].val = 80; // DCO1 Range
-  preset[54].cmd = 0x81; preset[54].val = 112;// DCO1 Waveform
-  preset[55].cmd = 0x82; preset[55].val = 64; // DCO1 Tune
+
+  uint ctr=0;
+        preset[ctr].cmd = 0x80; preset[ctr].val = 80; // DCO1 Range
+  ctr++;preset[ctr].cmd = 0x81; preset[ctr].val = 112;// DCO1 Waveform
+  ctr++;preset[ctr].cmd = 0x82; preset[ctr].val = 64; // DCO1 Tune
+  ctr++;preset[ctr].cmd = 0x83; preset[ctr].val = 0;  // DCO1 LFO Depth
+  ctr++;preset[ctr].cmd = 0x84; preset[ctr].val = 0;  // DCO1 Env Depth
+
+  ctr++;preset[ctr].cmd = 0x85; preset[ctr].val = 80; // DCO2 Range
+  ctr++;preset[ctr].cmd = 0x86; preset[ctr].val = 112;// DCO2 Waveform
+  ctr++;preset[ctr].cmd = 0x87; preset[ctr].val = 0;  // DCO XMOD
+  ctr++;preset[ctr].cmd = 0x88; preset[ctr].val = 64; // DCO2 Tune
+  ctr++;preset[ctr].cmd = 0x89; preset[ctr].val = 58; // DCO2 Fine Tune
+  ctr++;preset[ctr].cmd = 0x8A; preset[ctr].val = 0; // DCO2 LFO Depth
+  ctr++;preset[ctr].cmd = 0x8B; preset[ctr].val = 0; // DCO2 Env Depth
+
+  ctr++;preset[ctr].cmd = 0x8F; preset[ctr].val = 0; // DCO Dynamics
+  ctr++;preset[ctr].cmd = 0x90; preset[ctr].val = 0; // DCO EG Mode
+
+  ctr++;preset[ctr].cmd = 0x91; preset[ctr].val = 127; // Mix DCO1
+  ctr++;preset[ctr].cmd = 0x92; preset[ctr].val = 127; // Mix DCO2
+  ctr++;preset[ctr].cmd = 0x93; preset[ctr].val = 127; // Mix Env
+  ctr++;preset[ctr].cmd = 0x94; preset[ctr].val = 0; // Mix Dynamics
+  ctr++;preset[ctr].cmd = 0x95; preset[ctr].val = 0; // Mix EG Mode
+
+  ctr++;preset[ctr].cmd = 0x96; preset[ctr].val = 0; // VCF HPF
+  ctr++;preset[ctr].cmd = 0x97; preset[ctr].val = 55;// VCF Freq
+  ctr++;preset[ctr].cmd = 0x98; preset[ctr].val = 0; // VCF Resonance
+  ctr++;preset[ctr].cmd = 0x99; preset[ctr].val = 0; // VCF LFO
+  ctr++;preset[ctr].cmd = 0x9A; preset[ctr].val = 107; // VCF Env
+  ctr++;preset[ctr].cmd = 0x9B; preset[ctr].val = 127; // VCF Key
+  ctr++;preset[ctr].cmd = 0x9C; preset[ctr].val = 127; // VCF Dynamics
+  ctr++;preset[ctr].cmd = 0x9D; preset[ctr].val = 127; // VCF EG Mode
+
+  ctr++;preset[ctr].cmd = 0x9E; preset[ctr].val = 100; // VCA Level
+  ctr++;preset[ctr].cmd = 0x9F; preset[ctr].val = 0; // VCA Dynamics
+  ctr++;preset[ctr].cmd = 0xAF; preset[ctr].val = 0; // VCA EG Mode
+
+  ctr++;preset[ctr].cmd = 0xA1; preset[ctr].val = 64; // LFO Waveform
+  ctr++;preset[ctr].cmd = 0xA2; preset[ctr].val = 0; // LFO Delay
+  ctr++;preset[ctr].cmd = 0xA3; preset[ctr].val = 103; // LFO Rate
+  ctr++;preset[ctr].cmd = 0xC6; preset[ctr].val = 0; // LFO Sync
+
+  ctr++;preset[ctr].cmd = 0xA4; preset[ctr].val = 84; // EG Env1 Attk
+  ctr++;preset[ctr].cmd = 0xA5; preset[ctr].val = 79; // EG Env1 Decay
+  ctr++;preset[ctr].cmd = 0xA6; preset[ctr].val = 78; // EG Env1 Sust
+  ctr++;preset[ctr].cmd = 0xA7; preset[ctr].val = 100; // EG Env1 Rel
+  ctr++;preset[ctr].cmd = 0xA8; preset[ctr].val = 0; // EG Env1 Key
+
+  ctr++;preset[ctr].cmd = 0xA9; preset[ctr].val = 0; // EG Env2 Attk
+  ctr++;preset[ctr].cmd = 0xAA; preset[ctr].val = 15; // EG Env2 Decay
+  ctr++;preset[ctr].cmd = 0xAB; preset[ctr].val = 75; // EG Env2 Sust
+  ctr++;preset[ctr].cmd = 0xAC; preset[ctr].val = 0; // EG Env2 Rel
+  ctr++;preset[ctr].cmd = 0xAD; preset[ctr].val = 0; // EG Env2 Key
+
+  ctr++;preset[ctr].cmd = 0xB0; preset[ctr].val = 0; // PMW1 Width
+  ctr++;preset[ctr].cmd = 0xB1; preset[ctr].val = 0; // PWM1 Env
+  ctr++;preset[ctr].cmd = 0xB2; preset[ctr].val = 0; // PMW1 LFO
+  ctr++;preset[ctr].cmd = 0xB3; preset[ctr].val = 0; // PWM2 Width
+  ctr++;preset[ctr].cmd = 0xB4; preset[ctr].val = 0; // PWM2 Env
+  ctr++;preset[ctr].cmd = 0xB5; preset[ctr].val = 0; // PWM2 LFO
+  ctr++;preset[ctr].cmd = 0xC4; preset[ctr].val = 0; // PWM Dyna
+  ctr++;preset[ctr].cmd = 0xCC; preset[ctr].val = 0; // PWM Mode
+  ctr++;preset[ctr].cmd = 0xA0; preset[ctr].val = 0; // Chorus
+  ctr++;preset[ctr].cmd = 0x00; preset[ctr].val = 0; // Unassigned
+  ctr++;preset[ctr].cmd = 0x00; preset[ctr].val = 0; // Unassigned
+  ctr++;preset[ctr].cmd = 0x00; preset[ctr].val = 0; // Unassigned
 
   systemMode = MODE_RUNNING;
   systemSubMode = SUBMODE_1;
@@ -199,90 +210,73 @@ void setup() {
 
   // code to initialize the EEProm configuration if it hasn't already been set -- don't run this unless you're on a new Teensy, and only do it once
   /*
-  strcpy(knobConfigurations[0].name, "DCO1 Range"); knobConfigurations[0].cmdbyte = 0x80;
-  strcpy(knobConfigurations[1].name, "DCO1 Waveform"); knobConfigurations[1].cmdbyte = 0x81;
-  strcpy(knobConfigurations[2].name, "DCO1 Tune"); knobConfigurations[2].cmdbyte = 0x82;
-  strcpy(knobConfigurations[3].name, "DCO1 LFO Depth"); knobConfigurations[3].cmdbyte = 0x83;
-  strcpy(knobConfigurations[4].name, "DCO1 Env Depth"); knobConfigurations[4].cmdbyte = 0x84;
-  strcpy(knobConfigurations[5].name, "DCO2 Range"); knobConfigurations[5].cmdbyte = 0x85;
-  strcpy(knobConfigurations[6].name, "DCO2 Waveform"); knobConfigurations[6].cmdbyte = 0x86;
-  strcpy(knobConfigurations[7].name, "DCO XMOD"); knobConfigurations[7].cmdbyte = 0x87;
-  strcpy(knobConfigurations[8].name, "DCO2 Tune"); knobConfigurations[8].cmdbyte = 0x88;
-  strcpy(knobConfigurations[9].name, "DCO2 Fine Tune"); knobConfigurations[9].cmdbyte = 0x89;
-  strcpy(knobConfigurations[10].name, "DCO2 LFO Depth"); knobConfigurations[10].cmdbyte = 0x8A;
-  strcpy(knobConfigurations[11].name, "DCO2 Env Depth"); knobConfigurations[11].cmdbyte = 0x8B;
-  strcpy(knobConfigurations[12].name, "DCO Dynamics"); knobConfigurations[12].cmdbyte = 0x8F;
-  strcpy(knobConfigurations[13].name, "DCO EG Mode"); knobConfigurations[13].cmdbyte = 0x90;
-  strcpy(knobConfigurations[14].name, "Mix DCO1"); knobConfigurations[14].cmdbyte = 0x91;
-  strcpy(knobConfigurations[15].name, "Mix DCO2"); knobConfigurations[15].cmdbyte = 0x92;
-  strcpy(knobConfigurations[16].name, "Mix Env"); knobConfigurations[16].cmdbyte = 0x93;
-  strcpy(knobConfigurations[17].name, "Mix Dynamics"); knobConfigurations[17].cmdbyte = 0x94;
-  strcpy(knobConfigurations[18].name, "Mix EG Mode"); knobConfigurations[18].cmdbyte = 0x95;
-  strcpy(knobConfigurations[19].name, "VCF HPF"); knobConfigurations[19].cmdbyte = 0x96;
-  strcpy(knobConfigurations[20].name, "VCF Freq"); knobConfigurations[20].cmdbyte = 0x97;
-  strcpy(knobConfigurations[21].name, "VCF Resonance"); knobConfigurations[21].cmdbyte = 0x98;
-  strcpy(knobConfigurations[22].name, "VCF LFO"); knobConfigurations[22].cmdbyte = 0x99;
-  strcpy(knobConfigurations[23].name, "VCF Env"); knobConfigurations[23].cmdbyte = 0x9A;
-  strcpy(knobConfigurations[24].name, "VCF Key"); knobConfigurations[24].cmdbyte = 0x9B;
-  strcpy(knobConfigurations[25].name, "VCF Dynamics"); knobConfigurations[25].cmdbyte = 0x9C;
-  strcpy(knobConfigurations[26].name, "VCF EG Mode"); knobConfigurations[26].cmdbyte = 0x9D;
-  strcpy(knobConfigurations[27].name, "VCA Level"); knobConfigurations[27].cmdbyte = 0x9E;
-  strcpy(knobConfigurations[28].name, "VCA Dynamics"); knobConfigurations[28].cmdbyte = 0x9F;
-  strcpy(knobConfigurations[29].name, "Chorus"); knobConfigurations[29].cmdbyte = 0xA0;
-  strcpy(knobConfigurations[30].name, "LFO Waveform"); knobConfigurations[30].cmdbyte = 0xA1;
-  strcpy(knobConfigurations[31].name, "LFO Delay"); knobConfigurations[31].cmdbyte = 0xA2;
-  strcpy(knobConfigurations[32].name, "LFO Rate"); knobConfigurations[32].cmdbyte = 0xA3;
-  strcpy(knobConfigurations[33].name, "EG Env1 Attk"); knobConfigurations[33].cmdbyte = 0xA4;
-  strcpy(knobConfigurations[34].name, "EG Env1 Decay"); knobConfigurations[34].cmdbyte = 0xA5;
-  strcpy(knobConfigurations[35].name, "EG Env1 Sust"); knobConfigurations[35].cmdbyte = 0xA6;
-  strcpy(knobConfigurations[36].name, "EG Env1 Rel"); knobConfigurations[36].cmdbyte = 0xA7;
-  strcpy(knobConfigurations[37].name, "EG Env1 Key"); knobConfigurations[37].cmdbyte = 0xA8;
-  strcpy(knobConfigurations[38].name, "EG Env2 Attk"); knobConfigurations[38].cmdbyte = 0xA9;
-  strcpy(knobConfigurations[39].name, "EG Env2 Decay"); knobConfigurations[39].cmdbyte = 0xAA;
-  strcpy(knobConfigurations[40].name, "EG Env2 Sust"); knobConfigurations[40].cmdbyte = 0xAB;
-  strcpy(knobConfigurations[41].name, "EG Env2 Rel"); knobConfigurations[41].cmdbyte = 0xAC;
-  strcpy(knobConfigurations[42].name, "EG Env2 Key"); knobConfigurations[42].cmdbyte = 0xAD;
-  strcpy(knobConfigurations[43].name, "VCA EG Mode"); knobConfigurations[43].cmdbyte = 0xAF;
-  strcpy(knobConfigurations[44].name, "PMW1 Width"); knobConfigurations[44].cmdbyte = 0xB0;
-  strcpy(knobConfigurations[45].name, "PWM1 Env"); knobConfigurations[45].cmdbyte = 0xB1;
-  strcpy(knobConfigurations[46].name, "PMW1 LFO"); knobConfigurations[46].cmdbyte = 0xB2;
-  strcpy(knobConfigurations[47].name, "PWM2 Width"); knobConfigurations[47].cmdbyte = 0xB3;
-  strcpy(knobConfigurations[48].name, "PWM2 Env"); knobConfigurations[48].cmdbyte = 0xB4;
-  strcpy(knobConfigurations[49].name, "PWM2 LFO"); knobConfigurations[49].cmdbyte = 0xB5;
-  strcpy(knobConfigurations[50].name, "PWM Dyna"); knobConfigurations[50].cmdbyte = 0xCE;
-  strcpy(knobConfigurations[51].name, "LFO Sync"); knobConfigurations[51].cmdbyte = 0xD0;
-  strcpy(knobConfigurations[52].name, "PWM Mode"); knobConfigurations[52].cmdbyte = 0xD6;
-  strcpy(knobConfigurations[53].name, "DCO1 Range"); knobConfigurations[53].cmdbyte = 0x80;
-  strcpy(knobConfigurations[54].name, "DCO1 Waveform"); knobConfigurations[54].cmdbyte = 0x81;
-  strcpy(knobConfigurations[55].name, "DCO1 Tune"); knobConfigurations[55].cmdbyte = 0x82;
-  knobConfigurations[0].typecode = TYPE_CODE_RANGE; knobConfigurations[1].typecode = TYPE_CODE_WAVE_FORM;
-  knobConfigurations[2].typecode = TYPE_CODE_OCTAVE; knobConfigurations[3].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[4].typecode = TYPE_CODE_0_TO_10; knobConfigurations[5].typecode = TYPE_CODE_RANGE;
-  knobConfigurations[6].typecode = TYPE_CODE_WAVE_FORM; knobConfigurations[7].typecode = TYPE_CODE_3_2_1_OFF;
-  knobConfigurations[8].typecode = TYPE_CODE_OCTAVE; knobConfigurations[9].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[10].typecode = TYPE_CODE_0_TO_10; knobConfigurations[11].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[12].typecode = TYPE_CODE_3_2_1_OFF; knobConfigurations[13].typecode = TYPE_CODE_MODE;
-  knobConfigurations[14].typecode = TYPE_CODE_0_TO_10; knobConfigurations[15].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[16].typecode = TYPE_CODE_0_TO_10; knobConfigurations[17].typecode = TYPE_CODE_3_2_1_OFF;
-  knobConfigurations[18].typecode = TYPE_CODE_MODE; knobConfigurations[19].typecode = TYPE_CODE_3_2_1_OFF;
-  knobConfigurations[20].typecode = TYPE_CODE_0_TO_10; knobConfigurations[21].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[22].typecode = TYPE_CODE_0_TO_10; knobConfigurations[23].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[24].typecode = TYPE_CODE_0_TO_10; knobConfigurations[25].typecode = TYPE_CODE_3_2_1_OFF;
-  knobConfigurations[26].typecode = TYPE_CODE_MODE; knobConfigurations[27].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[28].typecode = TYPE_CODE_3_2_1_OFF; knobConfigurations[29].typecode = TYPE_CODE_2_1_OFF;
-  knobConfigurations[30].typecode = TYPE_CODE_LFO_WAVE_FORM; knobConfigurations[31].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[32].typecode = TYPE_CODE_0_TO_10; knobConfigurations[33].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[34].typecode = TYPE_CODE_0_TO_10; knobConfigurations[35].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[36].typecode = TYPE_CODE_0_TO_10; knobConfigurations[37].typecode = TYPE_CODE_3_2_1_OFF;
-  knobConfigurations[38].typecode = TYPE_CODE_0_TO_10; knobConfigurations[39].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[40].typecode = TYPE_CODE_0_TO_10; knobConfigurations[41].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[42].typecode = TYPE_CODE_3_2_1_OFF; knobConfigurations[43].typecode = TYPE_CODE_ENV2_GATE;
-  knobConfigurations[44].typecode = TYPE_CODE_3_2_1_OFF; knobConfigurations[45].typecode = TYPE_CODE_ENV2_GATE;
-  knobConfigurations[46].typecode = TYPE_CODE_0_TO_10; knobConfigurations[47].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[48].typecode = TYPE_CODE_0_TO_10; knobConfigurations[49].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[50].typecode = TYPE_CODE_0_TO_10; knobConfigurations[51].typecode = TYPE_CODE_0_TO_10;
-  knobConfigurations[52].typecode = TYPE_CODE_0_TO_10; knobConfigurations[53].typecode = TYPE_CODE_RANGE;
-  knobConfigurations[54].typecode = TYPE_CODE_WAVE_FORM; knobConfigurations[55].typecode = TYPE_CODE_OCTAVE;
+  ctr = 0;
+  strcpy(knobConfigurations[ctr].name, "DCO1 Range");     knobConfigurations[ctr].cmdbyte = 0x80; knobConfigurations[ctr].typecode = TYPE_CODE_RANGE;         ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO1 Waveform");  knobConfigurations[ctr].cmdbyte = 0x81; knobConfigurations[ctr].typecode = TYPE_CODE_WAVE_FORM;     ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO1 Tune");      knobConfigurations[ctr].cmdbyte = 0x82; knobConfigurations[ctr].typecode = TYPE_CODE_OCTAVE;        ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO1 LFO Depth"); knobConfigurations[ctr].cmdbyte = 0x83; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO1 Env Depth"); knobConfigurations[ctr].cmdbyte = 0x84; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+
+  strcpy(knobConfigurations[ctr].name, "DCO2 Range");     knobConfigurations[ctr].cmdbyte = 0x85; knobConfigurations[ctr].typecode = TYPE_CODE_RANGE;         ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO2 Waveform");  knobConfigurations[ctr].cmdbyte = 0x86; knobConfigurations[ctr].typecode = TYPE_CODE_WAVE_FORM;     ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO Crossmod");   knobConfigurations[ctr].cmdbyte = 0x87; knobConfigurations[ctr].typecode = TYPE_CODE_3_2_1_OFF;     ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO2 Tune");      knobConfigurations[ctr].cmdbyte = 0x88; knobConfigurations[ctr].typecode = TYPE_CODE_OCTAVE;        ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO2 Fine Tune"); knobConfigurations[ctr].cmdbyte = 0x89; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO2 LFO Depth"); knobConfigurations[ctr].cmdbyte = 0x8A; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO2 Env Depth"); knobConfigurations[ctr].cmdbyte = 0x8B; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+
+  strcpy(knobConfigurations[ctr].name, "DCO Dynamics");   knobConfigurations[ctr].cmdbyte = 0x8F; knobConfigurations[ctr].typecode = TYPE_CODE_3_2_1_OFF;     ctr++;
+  strcpy(knobConfigurations[ctr].name, "DCO EG Mode");    knobConfigurations[ctr].cmdbyte = 0x90; knobConfigurations[ctr].typecode = TYPE_CODE_MODE;          ctr++;
+
+  strcpy(knobConfigurations[ctr].name, "Mix DCO1");       knobConfigurations[ctr].cmdbyte = 0x91; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "Mix DCO2");       knobConfigurations[ctr].cmdbyte = 0x92; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "Mix Env");        knobConfigurations[ctr].cmdbyte = 0x93; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "Mix EG Dynamic"); knobConfigurations[ctr].cmdbyte = 0x94; knobConfigurations[ctr].typecode = TYPE_CODE_3_2_1_OFF;     ctr++;
+  strcpy(knobConfigurations[ctr].name, "Mix EG Mode");    knobConfigurations[ctr].cmdbyte = 0x95; knobConfigurations[ctr].typecode = TYPE_CODE_MODE;          ctr++;
+
+  strcpy(knobConfigurations[ctr].name, "VCF HP Filter");  knobConfigurations[ctr].cmdbyte = 0x96; knobConfigurations[ctr].typecode = TYPE_CODE_3_2_1_OFF;     ctr++;
+  strcpy(knobConfigurations[ctr].name, "VCF Cutoff Frq"); knobConfigurations[ctr].cmdbyte = 0x97; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "VCF Resonance");  knobConfigurations[ctr].cmdbyte = 0x98; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "VCF LFO");        knobConfigurations[ctr].cmdbyte = 0x99; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "VCF Env");        knobConfigurations[ctr].cmdbyte = 0x9A; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "VCF Key Follow"); knobConfigurations[ctr].cmdbyte = 0x9B; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "VCF EG Dynamic"); knobConfigurations[ctr].cmdbyte = 0x9C; knobConfigurations[ctr].typecode = TYPE_CODE_3_2_1_OFF;     ctr++;
+  strcpy(knobConfigurations[ctr].name, "VCF EG Mode");    knobConfigurations[ctr].cmdbyte = 0x9D; knobConfigurations[ctr].typecode = TYPE_CODE_MODE;          ctr++;
+
+  strcpy(knobConfigurations[ctr].name, "VCA Level");      knobConfigurations[ctr].cmdbyte = 0x9E; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "VCA EG Dynamic"); knobConfigurations[ctr].cmdbyte = 0x9F; knobConfigurations[ctr].typecode = TYPE_CODE_3_2_1_OFF;     ctr++;
+  strcpy(knobConfigurations[ctr].name, "VCA EG Mode");    knobConfigurations[ctr].cmdbyte = 0xAF; knobConfigurations[ctr].typecode = TYPE_CODE_ENV2_GATE;     ctr++;
+
+  strcpy(knobConfigurations[ctr].name, "LFO Waveform");   knobConfigurations[ctr].cmdbyte = 0xA1; knobConfigurations[ctr].typecode = TYPE_CODE_LFO_WAVE_FORM; ctr++;
+  strcpy(knobConfigurations[ctr].name, "LFO Delay");      knobConfigurations[ctr].cmdbyte = 0xA2; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "LFO Rate");       knobConfigurations[ctr].cmdbyte = 0xA3; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "LFO Sync");       knobConfigurations[ctr].cmdbyte = 0xD0; knobConfigurations[ctr].typecode = TYPE_CODE_2_1_OFF;       ctr++;
+  
+  strcpy(knobConfigurations[ctr].name, "EG Env1 Attk");   knobConfigurations[ctr].cmdbyte = 0xA4; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "EG Env1 Decay");  knobConfigurations[ctr].cmdbyte = 0xA5; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "EG Env1 Sust");   knobConfigurations[ctr].cmdbyte = 0xA6; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "EG Env1 Rel");    knobConfigurations[ctr].cmdbyte = 0xA7; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "EG Env1 Key");    knobConfigurations[ctr].cmdbyte = 0xA8; knobConfigurations[ctr].typecode = TYPE_CODE_3_2_1_OFF;     ctr++;
+  strcpy(knobConfigurations[ctr].name, "EG Env2 Attk");   knobConfigurations[ctr].cmdbyte = 0xA9; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "EG Env2 Decay");  knobConfigurations[ctr].cmdbyte = 0xAA; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "EG Env2 Sust");   knobConfigurations[ctr].cmdbyte = 0xAB; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "EG Env2 Rel");    knobConfigurations[ctr].cmdbyte = 0xAC; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "EG Env2 Key");    knobConfigurations[ctr].cmdbyte = 0xAD; knobConfigurations[ctr].typecode = TYPE_CODE_3_2_1_OFF;     ctr++;
+  
+  strcpy(knobConfigurations[ctr].name, "PWM Mode");       knobConfigurations[ctr].cmdbyte = 0xD6; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "PMW1 Width");     knobConfigurations[ctr].cmdbyte = 0xB0; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "PWM1 Env");       knobConfigurations[ctr].cmdbyte = 0xB1; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "PMW1 LFO");       knobConfigurations[ctr].cmdbyte = 0xB2; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "PWM2 Width");     knobConfigurations[ctr].cmdbyte = 0xB3; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "PWM2 Env");       knobConfigurations[ctr].cmdbyte = 0xB4; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "PWM2 LFO");       knobConfigurations[ctr].cmdbyte = 0xB5; knobConfigurations[ctr].typecode = TYPE_CODE_0_TO_10;       ctr++;
+  strcpy(knobConfigurations[ctr].name, "PWM Dyna");       knobConfigurations[ctr].cmdbyte = 0xCE; knobConfigurations[ctr].typecode = TYPE_CODE_3_2_1_OFF;     ctr++;
+  
+  strcpy(knobConfigurations[ctr].name, "Chorus");         knobConfigurations[ctr].cmdbyte = 0xA0; ctr++;
+
+  strcpy(knobConfigurations[ctr].name, "Unassigned");     knobConfigurations[ctr].cmdbyte = 0x00; ctr++;
+  strcpy(knobConfigurations[ctr].name, "Unassigned");     knobConfigurations[ctr].cmdbyte = 0x00; ctr++;
+  strcpy(knobConfigurations[ctr].name, "Unassigned");     knobConfigurations[ctr].cmdbyte = 0x00; ctr++;
   saveKnobs();
   */
 

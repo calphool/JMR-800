@@ -114,15 +114,8 @@ void drawButton(int x, int y, bool red, bool green, uint8_t depressed) {
     display.drawLine(x+6,y+1, x+7, y+1, SH110X_BLACK);
 }
 
-void drawRunningScreen() {
-  if(millis() - lastdrawTestScreen < 33) 
-    return;
 
-  lastdrawTestScreen = millis();
-
-  display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
-  display.setTextColor(SH110X_WHITE);
-  if(millis() < 12000) {
+void drawBootScreen() {
     display.setCursor(10,0);
     display.print("JMR-800 Controller");
     display.setCursor(10,20);
@@ -132,15 +125,50 @@ void drawRunningScreen() {
     display.setCursor(10,50);
     display.print("Booting...");
     display.display();
+}
+
+
+void drawRunningScreen() {
+  if(millis() - lastdrawTestScreen < 33) 
+    return;
+
+  lastdrawTestScreen = millis();
+
+  toggle = -toggle;
+
+  display.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SH110X_BLACK); // clear screen
+  display.setTextColor(SH110X_WHITE);
+  if(millis() < 12000) {
+    drawBootScreen();
     return;
   }
 
   display.setCursor(20,20);
   display.print(knobConfigurations[activeKnob].name);
   display.setCursor(20,30);
-  display.print(typeCodes[knobConfigurations[activeKnob].typecode].typeCodeName);
-  display.setCursor(20,40);
-  display.print(knobValueAt(activeKnob));
+  if(knobConfigurations[activeKnob].typecode != TYPE_CODE_0_TO_10)
+    display.print(typeCodes[knobConfigurations[activeKnob].typecode].typeCodeName);
+
+  if(knobConfigurations[activeKnob].typecode == TYPE_CODE_0_TO_10) {
+    display.drawLine(14, 40, 114, 40, SH110X_WHITE);
+    for(int i=14; i<114; i=i+5) {
+      display.drawLine(i, 41, i, 42, SH110X_WHITE);
+    }
+    uint pos = 100 * knobValueAt(activeKnob) / 127;
+    if(toggle > 0) 
+      display.drawLine(14 + pos, 39, 14 + pos, 37, SH110X_WHITE);
+    else 
+      display.drawLine(14 + pos, 39, 14 + pos, 37, SH110X_BLACK);
+    
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(58,48);
+    display.print(knobValueAt(activeKnob));
+  }
+  else {
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(20,40);
+    display.print(knobValueAt(activeKnob));
+  }
 
   if(systemSubMode == SUBMODE_2 || systemSubMode == SUBMODE_3) {
     display.drawLine(4, 60, 4 + (parmCtr*2), 60, SH110X_WHITE);
