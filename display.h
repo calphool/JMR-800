@@ -127,6 +127,395 @@ void drawBootScreen() {
     display.display();
 }
 
+void drawTypeCode0ToTen() {
+    display.drawLine(14, 30, 114, 30, SH110X_WHITE);
+
+    if(knobConfigurations[activeKnob].cmdbyte == 0x89) { // fine tune
+      display.setCursor(10,38);
+      display.print("-50");
+      display.setCursor(110, 38);
+      display.print("+50");
+      display.setCursor(60,38);
+      display.print("0");
+    }
+    else {
+      display.setCursor(10,38);
+      display.print("0");
+      display.setCursor(110, 38);
+      display.print("100");
+    }
+    for(int i=14; i<=114; i=i+5) {
+      display.drawLine(i, 31, i, 32, SH110X_WHITE);
+    }
+    uint pos = 100 * (127-knobValueAt(activeKnob)) / 127;
+    if(toggle > 0) 
+      display.drawLine(14 + pos, 29, 14 + pos, 27, SH110X_WHITE);
+    else 
+      display.drawLine(24 + pos, 29, 14 + pos, 27, SH110X_BLACK);
+    
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(58,48);
+    display.print(knobValueAt(activeKnob));  
+}
+
+
+void drawTypeCodeRange() {
+  uint ctr = 2;
+  display.drawLine(14, 30, 114, 30, SH110X_WHITE);
+  for(int i=14; i<=114; i=i+33) {
+    display.drawLine(i, 31, i, 32, SH110X_WHITE);
+    display.setCursor(i-6, 38);
+    display.print(String(ctr) +"'");
+    ctr = ctr * 2;
+  }
+  uint pos = 100 * (127-knobValueAt(activeKnob)) / 127;
+  if(toggle > 0) 
+    display.drawLine(14 + pos, 29, 14 + pos, 27, SH110X_WHITE);
+  else 
+    display.drawLine(14 + pos, 29, 14 + pos, 27, SH110X_BLACK);
+  
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(58,48);
+  display.print(knobValueAt(activeKnob));  
+}
+
+
+void drawTypeCodeWaveForm() {
+  uint val = knobValueAt(activeKnob);
+
+  display.setCursor(44,34);
+  if(val < 32) {
+    display.print("Noise");
+    int oldx = 14;
+    int oldy = 0;
+    int y;
+    for(int i=14; i<=114; i = i + 1) {
+      i = i + random(0,3);
+      y = random(0,8) - random(0,6);
+      display.drawLine(oldx, oldy + 25, i, y + 25, SH110X_WHITE);
+      oldx = i;
+      oldy = y;
+    }
+  }
+  else
+  if(val < 64) {
+    display.print("Square");
+    int startX = 14;
+    int startY = 30;
+    int waveWidth = 10;
+    int waveHeight = 10;
+    int waveEndX = 100;
+    
+    // Draw the square wave
+    for (int x = startX; x <= waveEndX; x += waveWidth * 2) {
+      display.drawLine(x, startY, x, startY - waveHeight, SH110X_WHITE);
+      display.drawLine(x, startY - waveHeight, x + waveWidth, startY - waveHeight, SH110X_WHITE);
+      display.drawLine(x + waveWidth, startY - waveHeight, x + waveWidth, startY, SH110X_WHITE);
+      display.drawLine(x + waveWidth, startY, x + 2 * waveWidth, startY, SH110X_WHITE);
+    }
+  }
+  else
+  if(val < 96) {
+    display.print("Pulse");
+    int waveStartX = 14;
+    int waveStartY = 30;
+    int waveEndX = 114;
+    int waveHeight = 10;
+    int wavePeriod = 20;
+    int pulseWidth = 3; 
+     for (int x = waveStartX; x < waveEndX; x += wavePeriod) {
+      display.drawLine(x, waveStartY, x, waveStartY - waveHeight, SH110X_WHITE);
+      display.drawLine(x, waveStartY - waveHeight, x + pulseWidth, waveStartY - waveHeight, SH110X_WHITE);
+      display.drawLine(x + pulseWidth, waveStartY - waveHeight, x + pulseWidth, waveStartY, SH110X_WHITE);
+      display.drawLine(x + pulseWidth, waveStartY, x + wavePeriod, waveStartY, SH110X_WHITE);
+    }
+  }
+  else {
+    display.print("Sawtooth");
+    int waveStartX = 14;
+    int waveStartY = 30;
+    int waveEndX = 114;
+    int waveHeight = 10;
+    int wavePeriod = 20;
+    for (int x = waveStartX; x < waveEndX; x += wavePeriod) {
+      display.drawLine(x, waveStartY, x + wavePeriod, waveStartY - waveHeight, SH110X_WHITE);
+      display.drawLine(x + wavePeriod, waveStartY - waveHeight, x + wavePeriod, waveStartY, SH110X_WHITE);
+    }
+  }
+
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(58,48);
+  display.print(val);  
+}
+
+
+void drawTypeCodeOctave() {
+    display.drawLine(14, 30, 114, 30, SH110X_WHITE);
+    display.setCursor(10,38);
+    display.print("-12");
+    display.setCursor(110, 38);
+    display.print("+12");
+    display.setCursor(60,38);
+    display.print("0");
+    for(int i=14; i<=114; i=i+5) {
+      display.drawLine(i, 31, i, 32, SH110X_WHITE);
+    }
+    uint pos = 100 * (127-knobValueAt(activeKnob)) / 127;
+    if(toggle > 0) 
+      display.drawLine(14 + pos, 29, 14 + pos, 27, SH110X_WHITE);
+    else 
+      display.drawLine(24 + pos, 29, 14 + pos, 27, SH110X_BLACK);
+    
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(58,48);
+    display.print(knobValueAt(activeKnob));  
+}
+
+
+void drawTypeCode3_2_1_OFF() {
+  uint ctr = 3;
+  display.drawLine(14, 30, 114, 30, SH110X_WHITE);
+  for(int i=14; i<=114; i=i+33) {
+    display.drawLine(i, 31, i, 32, SH110X_WHITE);
+    display.setCursor(i-6, 38);
+    if(knobConfigurations[activeKnob].cmdbyte == 0x87 && ctr == 3) { // xmod
+      display.print("XMod");
+    }
+    else {
+      if(ctr == 0)
+        display.print("OFF");
+      else
+        display.print(String(ctr));
+    }
+    ctr--;
+  }
+  uint pos = 100 * (127-knobValueAt(activeKnob)) / 127;
+  if(toggle > 0) 
+    display.drawLine(14 + pos, 29, 14 + pos, 27, SH110X_WHITE);
+  else 
+    display.drawLine(14 + pos, 29, 14 + pos, 27, SH110X_BLACK);
+  
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(58,48);
+  display.print(knobValueAt(activeKnob));  
+}
+
+
+void drawTypeCodeMode() {
+  uint val = knobValueAt(activeKnob);
+  
+  int rectX1 = 14;
+  int rectY1 = 20;
+  int rectX2 = 114;
+  int rectY2 = 40;
+  int rectHeight = rectY2 - rectY1;
+
+  // ADSR Parameters (values are relative to the total width)
+  int attackTime = 20;   // Width of the attack phase
+  int decayTime = 20;    // Width of the decay phase
+  int sustainLevel = 30; // Height of the sustain level (in percent)
+  int releaseTime = 30;  // Width of the release phase
+
+  display.setTextColor(SH110X_WHITE);
+
+  if(val < 32) {
+    int attackX = rectX1 + attackTime;
+    int decayX = attackX + decayTime;
+    int sustainX = rectX2 - releaseTime;
+    int sustainY = rectY1 + (rectHeight * sustainLevel / 100);
+    display.drawLine(rectX1, rectY1, attackX, rectY2, SH110X_WHITE);        // Attack
+    display.drawLine(attackX, rectY2, decayX, sustainY, SH110X_WHITE);      // Decay
+    display.drawLine(decayX, sustainY, sustainX, sustainY, SH110X_WHITE);   // Sustain
+    display.drawLine(sustainX, sustainY, rectX2, rectY1, SH110X_WHITE);     // Release  
+    display.setCursor(4,40);
+    display.print("Envelope 2 Inverted");
+  }
+  else
+  if(val < 64) {
+    int attackX = rectX1 + attackTime;
+    int decayX = attackX + decayTime;
+    int sustainX = rectX2 - releaseTime;    
+    int sustainY = rectY2 - (rectHeight * sustainLevel / 100);
+    display.drawLine(rectX1, rectY2, attackX, rectY1, SH110X_WHITE);        // Attack
+    display.drawLine(attackX, rectY1, decayX, sustainY, SH110X_WHITE);      // Decay
+    display.drawLine(decayX, sustainY, sustainX, sustainY, SH110X_WHITE);   // Sustain
+    display.drawLine(sustainX, sustainY, rectX2, rectY2, SH110X_WHITE);     // Release
+    display.setCursor(12,40);
+    display.print("Envelope 2 Normal");
+  }
+  else
+  if(val < 96) {
+    int attackX = rectX1 + attackTime;
+    int decayX = attackX + decayTime;
+    int sustainX = rectX2 - releaseTime;
+    int sustainY = rectY1 + (rectHeight * sustainLevel / 100);
+    display.drawLine(rectX1, rectY1, attackX, rectY2, SH110X_WHITE);        // Attack
+    display.drawLine(attackX, rectY2, decayX, sustainY, SH110X_WHITE);      // Decay
+    display.drawLine(decayX, sustainY, sustainX, sustainY, SH110X_WHITE);   // Sustain
+    display.drawLine(sustainX, sustainY, rectX2, rectY1, SH110X_WHITE);     // Release  
+    display.setCursor(4,40);
+    display.print("Envelope 1 Inverted");
+  }
+  else {
+    int attackX = rectX1 + attackTime;
+    int decayX = attackX + decayTime;
+    int sustainX = rectX2 - releaseTime;    
+    int sustainY = rectY2 - (rectHeight * sustainLevel / 100);
+    display.drawLine(rectX1, rectY2, attackX, rectY1, SH110X_WHITE);        // Attack
+    display.drawLine(attackX, rectY1, decayX, sustainY, SH110X_WHITE);      // Decay
+    display.drawLine(decayX, sustainY, sustainX, sustainY, SH110X_WHITE);   // Sustain
+    display.drawLine(sustainX, sustainY, rectX2, rectY2, SH110X_WHITE);     // Release
+    display.setCursor(12,40);
+    display.print("Envelope 1 Normal");
+  }  
+
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(58,48);
+  display.print(knobValueAt(activeKnob));  
+}
+
+
+void drawTypeCodeEnv2Gate() {
+  uint val = knobValueAt(activeKnob);
+
+  int rectX1 = 14;
+  int rectY1 = 20;
+  int rectX2 = 114;
+  int rectY2 = 40;
+  int rectHeight = rectY2 - rectY1;
+
+  // ADSR Parameters (values are relative to the total width)
+  int attackTime = 20;   // Width of the attack phase
+  int decayTime = 20;    // Width of the decay phase
+  int sustainLevel = 30; // Height of the sustain level (in percent)
+  int releaseTime = 30;  // Width of the release phase
+
+  if(val < 64) {
+    // Gate signal
+    int leadLowTime = 20;  // Leading low duration (in pixels)
+    int gateHighTime = 60; // High duration (in pixels)
+    int gateStartX = rectX1 + leadLowTime;
+    int gateEndX = gateStartX + gateHighTime;
+    display.drawLine(rectX1, rectY2, gateStartX, rectY2, SH110X_WHITE);
+    display.drawLine(gateStartX, rectY2, gateStartX, rectY1, SH110X_WHITE);
+    display.drawLine(gateStartX, rectY1, gateEndX, rectY1, SH110X_WHITE);
+    display.drawLine(gateEndX, rectY1, gateEndX, rectY2, SH110X_WHITE);
+    display.drawLine(gateEndX, rectY2, rectX2, rectY2, SH110X_WHITE);
+    display.setCursor(50,35);
+    display.print("Gate");
+  }
+  else {
+    // Env 2 signal
+    int attackX = rectX1 + attackTime;
+    int decayX = attackX + decayTime;
+    int sustainX = rectX2 - releaseTime;    
+    int sustainY = rectY2 - (rectHeight * sustainLevel / 100);
+    display.drawLine(rectX1, rectY2, attackX, rectY1, SH110X_WHITE);        // Attack
+    display.drawLine(attackX, rectY1, decayX, sustainY, SH110X_WHITE);      // Decay
+    display.drawLine(decayX, sustainY, sustainX, sustainY, SH110X_WHITE);   // Sustain
+    display.drawLine(sustainX, sustainY, rectX2, rectY2, SH110X_WHITE);     // Release
+    display.setCursor(20,35);
+    display.print("Envelope 2");
+  }
+
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(58,48);
+  display.print(knobValueAt(activeKnob));  
+}
+
+
+void drawTypeCodeLFOWaveForm() {
+  uint val = knobValueAt(activeKnob);
+
+  if(val < 32) { // rand
+    int waveStartX = 14;
+    int waveStartY = 30;
+    int waveEndX = 114;
+    int waveHeight = 10;
+    int wavePeriod = 10; 
+
+    int lastX = waveStartX;
+    int lastY = waveStartY - random(-waveHeight, waveHeight + 1);
+    
+    for (int x = waveStartX; x < waveEndX; x += wavePeriod) {
+      int newY = waveStartY - random(-waveHeight, waveHeight + 1);
+      display.drawLine(lastX, lastY, x + wavePeriod, lastY, SH110X_WHITE);
+      display.drawLine(x + wavePeriod, lastY, x + wavePeriod, newY, SH110X_WHITE);
+      lastX = x + wavePeriod;
+      lastY = newY;
+    }
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(4,40);
+    display.print("Random Sample & Hold");
+  }
+  else
+  if(val < 64) { // square
+    int waveStartX = 14;
+    int waveStartY = 30;
+    int waveEndX = 114;
+    int waveHeight = 10;
+    int wavePeriod = 20;
+    for (int x = waveStartX; x < waveEndX; x += wavePeriod) {
+      display.drawLine(x, waveStartY, x, waveStartY - waveHeight, SH110X_WHITE);
+      display.drawLine(x, waveStartY - waveHeight, x + wavePeriod / 2, waveStartY - waveHeight, SH110X_WHITE);
+      display.drawLine(x + wavePeriod / 2, waveStartY - waveHeight, x + wavePeriod / 2, waveStartY, SH110X_WHITE);
+      display.drawLine(x + wavePeriod / 2, waveStartY, x + wavePeriod, waveStartY, SH110X_WHITE);
+    }  
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(40,35);
+    display.print("Square");
+  }
+  else { // sine wave
+    int waveStartX = 14;
+    int waveStartY = 30;
+    int waveEndX = 114;
+    int waveHeight = 10;
+    int waveWidth = waveEndX - waveStartX;
+
+    int lastX = waveStartX;
+    int lastY = waveStartY;
+    for (int x = waveStartX; x <= waveEndX; x++) {
+      // Map the x position to a full sine wave cycle
+      float angle = ((float)(x - waveStartX) / waveWidth) * 2.0 * PI;
+      int y = waveStartY - (sin(angle) * waveHeight);
+      display.drawLine(lastX, lastY, x, y, SH110X_WHITE);
+      lastX = x;
+      lastY = y;
+    }
+    display.setTextColor(SH110X_WHITE);
+    display.setCursor(48,35);
+    display.print("Sine");
+  }
+
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(58,48);
+  display.print(knobValueAt(activeKnob));  
+}
+
+
+void drawTypeCode2_1_OFF() {
+  uint ctr = 2;
+  display.drawLine(14, 30, 114, 30, SH110X_WHITE);
+  for(int i=14; i<=114; i=i+50) {
+    display.drawLine(i, 31, i, 32, SH110X_WHITE);
+    display.setCursor(i-6, 38);
+    if(ctr == 0)
+      display.print("OFF");
+    else
+      display.print(String(ctr));
+    ctr--;
+  }
+  uint pos = 100 * (127-knobValueAt(activeKnob)) / 127;
+  if(toggle > 0) 
+    display.drawLine(14 + pos, 29, 14 + pos, 27, SH110X_WHITE);
+  else 
+    display.drawLine(14 + pos, 29, 14 + pos, 27, SH110X_BLACK);
+  
+  display.setTextColor(SH110X_WHITE);
+  display.setCursor(58,48);
+  display.print(knobValueAt(activeKnob));  
+}
+
 
 void drawRunningScreen() {
   if(millis() - lastdrawTestScreen < 33) 
@@ -143,34 +532,58 @@ void drawRunningScreen() {
     return;
   }
 
-  display.setCursor(20,20);
+  display.setCursor(20,10);
   display.print(knobConfigurations[activeKnob].name);
-  display.setCursor(20,30);
-  if(knobConfigurations[activeKnob].typecode != TYPE_CODE_0_TO_10)
-    display.print(typeCodes[knobConfigurations[activeKnob].typecode].typeCodeName);
 
+  if(knobConfigurations[activeKnob].cmdbyte == 0) {
+    display.display();
+    return;
+  }
+
+  if(knobConfigurations[activeKnob].typecode == TYPE_CODE_RANGE) {
+      drawTypeCodeRange();
+  }
+  else
   if(knobConfigurations[activeKnob].typecode == TYPE_CODE_0_TO_10) {
-    display.drawLine(14, 40, 114, 40, SH110X_WHITE);
-    for(int i=14; i<114; i=i+5) {
-      display.drawLine(i, 41, i, 42, SH110X_WHITE);
-    }
-    uint pos = 100 * knobValueAt(activeKnob) / 127;
-    if(toggle > 0) 
-      display.drawLine(14 + pos, 39, 14 + pos, 37, SH110X_WHITE);
-    else 
-      display.drawLine(14 + pos, 39, 14 + pos, 37, SH110X_BLACK);
-    
-    display.setTextColor(SH110X_WHITE);
-    display.setCursor(58,48);
-    display.print(knobValueAt(activeKnob));
+      drawTypeCode0ToTen();
+  }
+  else
+  if(knobConfigurations[activeKnob].typecode == TYPE_CODE_WAVE_FORM) {
+    drawTypeCodeWaveForm();
+  }
+  else
+  if(knobConfigurations[activeKnob].typecode == TYPE_CODE_OCTAVE) {
+    drawTypeCodeOctave();
+  }
+  else
+  if(knobConfigurations[activeKnob].typecode == TYPE_CODE_2_1_OFF) {
+    drawTypeCode2_1_OFF();
+  }
+  else
+  if(knobConfigurations[activeKnob].typecode == TYPE_CODE_3_2_1_OFF) {
+    drawTypeCode3_2_1_OFF();
+  }
+  else
+  if(knobConfigurations[activeKnob].typecode == TYPE_CODE_MODE) {
+    drawTypeCodeMode();
+  }
+  else
+  if(knobConfigurations[activeKnob].typecode == TYPE_CODE_ENV2_GATE) {
+    drawTypeCodeEnv2Gate();
+  }
+  else
+  if(knobConfigurations[activeKnob].typecode == TYPE_CODE_LFO_WAVE_FORM) {
+    drawTypeCodeLFOWaveForm();
   }
   else {
+    display.setCursor(20,20);
+    display.print(typeCodes[knobConfigurations[activeKnob].typecode].typeCodeName);
     display.setTextColor(SH110X_WHITE);
     display.setCursor(20,40);
     display.print(knobValueAt(activeKnob));
   }
 
-  if(systemSubMode == SUBMODE_2 || systemSubMode == SUBMODE_3) {
+  if(systemSubMode == SUBMODE_2 || systemSubMode == SUBMODE_3) { // line that gets drawn for uploads
     display.drawLine(4, 60, 4 + (parmCtr*2), 60, SH110X_WHITE);
   }
 

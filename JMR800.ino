@@ -293,7 +293,7 @@ void sendParameterToSynth(uint i) {
     uint kv = knobValueAt(i);
 
     if(knobConfigurations[i].typecode == TYPE_CODE_0_TO_10 || knobConfigurations[i].typecode == TYPE_CODE_OCTAVE) {
-      sendParameter(knobConfigurations[i].cmdbyte, knobValueAt(i));
+      sendParameter(knobConfigurations[i].cmdbyte, 127-knobValueAt(i)); // reverse the values so the knob goes clockwise
       return;
     }
 
