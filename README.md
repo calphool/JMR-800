@@ -99,6 +99,12 @@ One thing that I noticed that I'm going to have to deal with is the fact that no
 ADC.  They came in a big bag from Aliexpress, so they're probably pretty low quality.  I'm going to need to implement some way to measure their min and 
 max values, probably in the config mode, and then scale the pot value for each pot in software.
 
+
+May 11, 2025
+
+Finished all the screen stuff for Run mode, which is a pretty big milestone.  Also added an SVG file that represents the console layout. Working on an 
+overlay using a Glowforge and acrylic.
+
 ## License
 
 This project is released under the MIT License.
