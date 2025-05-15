@@ -105,6 +105,11 @@ May 11, 2025
 Finished all the screen stuff for Run mode, which is a pretty big milestone.  Also added an SVG file that represents the console layout. Working on an 
 overlay using a Glowforge and acrylic.
 
+
+May 14, 2025
+
+![completed device](completed_pic.jpg)
+
 ## License
 
 This project is released under the MIT License.
