@@ -121,7 +121,7 @@ more expandable user interface, and I really would like to implement a few inter
 First, I'd like to make it so that there are a collection of pre-sets that can be played into the JX8P on demand (like button 2 does right now with the 
 default sound load, but with many many different presets).  The other thing I'd really like to do is implement something analogous to an arpeggiator, but 
 rather than changing notes, it would change settings on a parameter.  For example, let's say you want to vary any arbitrary parameter (say something weird 
-like chorus) with something like and LFO.  Let us further consider that you don't want to use one of the three or four LFO options available in the synth 
+like chorus) with something like an LFO.  Let us further consider that you don't want to use one of the three or four LFO options available in the synth 
 hardware itself, bur instead you want to be able to apply any arbitrary waveform to that chorus.  Although the "waveform" will be small (only 32 steps), it 
 can take any form, and you simply draw the waveform in.  Then, when you go to a parameter for a given control, you depress the encoder button, and it pops 
 up with a menu that lets you choose which stepper-LFO you want to use for this parameter.
