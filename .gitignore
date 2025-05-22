@@ -1,3 +1,4 @@
 # Ignore any file or directory with "-backups" in the name
 *-backups*
 
+**/*.lck
