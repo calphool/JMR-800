@@ -110,6 +110,25 @@ May 14, 2025
 
 ![completed device](completed_pic.jpg)
 
+
+May 22, 2025
+
+I'm beginning to consider a major refactor of the software.  It all works pretty well, but there are some things I'd like to do that require a cleaner code 
+base.  Basically I cobbled together the different system modes using a sloppy FSM rather than doing proper object oriented development whereby I set up 
+modes as objects, and modes have screens, and screens have widgets, and widgets interact with controls, and so on.  By doing this, I'd have an infinitely 
+more expandable user interface, and I really would like to implement a few interesting ideas.
+
+First, I'd like to make it so that there are a collection of pre-sets that can be played into the JX8P on demand (like button 2 does right now with the 
+default sound load, but with many many different presets).  The other thing I'd really like to do is implement something analogous to an arpeggiator, but 
+rather than changing notes, it would change settings on a parameter.  For example, let's say you want to vary any arbitrary parameter (say something weird 
+like chorus) with something like and LFO.  Let us further consider that you don't want to use one of the three or four LFO options available in the synth 
+hardware itself, bur instead you want to be able to apply any arbitrary waveform to that chorus.  Although the "waveform" will be small (only 32 steps), it 
+can take any form, and you simply draw the waveform in.  Then, when you go to a parameter for a given control, you depress the encoder button, and it pops 
+up with a menu that lets you choose which stepper-LFO you want to use for this parameter.
+
+All of this will require some significant refactoring.  I also want to introduce a microSD to the Teensy so that all this stuff can be stored and retrieved.  
+Keep an eye out for a major update to the code base soon.
+
 ## License
 
 This project is released under the MIT License.
